@@ -99,8 +99,6 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
             Screen.HOME -> exitPrompt = ExitPrompt.EXIT_APP
             Screen.HUB -> model.home()
             Screen.SOLO -> { audio.stopVoice(); model.hub() }
-            Screen.ARENA_PICK -> model.hub()
-            Screen.ARENA -> { audio.stopVoice(); model.arenaPicker() }
             Screen.DUEL_PICK -> model.hub()
             Screen.DUEL -> { audio.stopVoice(); model.duelPicker() }
             Screen.PARENTS -> model.hub()
@@ -138,7 +136,6 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
                 onBack = { audio.tap(); model.home() },
                 onSolo = { audio.tap(); model.launchSolo(it) },
                 onClassic = { audio.tap(); model.start() },
-                onArena = { audio.tap(); model.arenaPicker() },
                 onDuel = { audio.tap(); model.duelPicker() },
                 onSettings = { audio.tap(); model.settings() },
                 onParents = { audio.tap(); model.parentDashboard() }
@@ -151,20 +148,6 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
                     context = context, audio = audio,
                     review = model.reviewQuestions,
                     onBack = { audio.stopVoice(); model.hub() },
-                    onAgain = { audio.stopVoice(); model.replayAdventure() }
-                )
-            }
-            Screen.ARENA_PICK -> BattlePicker(
-                maxNumber = settings.maxNumber,
-                onBack = { audio.tap(); model.hub() },
-                onStart = { audio.tap(); model.launchArena(it) }
-            )
-            Screen.ARENA -> androidx.compose.runtime.key(model.adventureRun) {
-                BattleAdventureScreen(
-                    options = model.arenaOptions,
-                    maxNumber = settings.maxNumber,
-                    context = context, audio = audio,
-                    onBack = { audio.stopVoice(); model.arenaPicker() },
                     onAgain = { audio.stopVoice(); model.replayAdventure() }
                 )
             }

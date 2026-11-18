@@ -101,8 +101,9 @@ class AdventureEngineTest {
             TrainingRecord(title, "1 + 1", "ADD:1:1", index % 2 == 0, false, 10L)
         }
         val current = TrainingHistory.currentGameRecords(records)
-        assertEquals(listOf("算数探险", "小小商店", "错题专项复习",
-            "⚡ 闪电抢答赛·左侧", "🧠 巧思挑战赛·右侧"),
+        // Both historical arena records stay on disk but are not visible in
+        // today's identical phone/tablet game catalogue or dashboard filters.
+        assertEquals(listOf("算数探险", "小小商店", "错题专项复习"),
             current.map { it.game })
         assertEquals(8, records.size) // Original storage remains untouched.
         assertEquals("自由算术探险", records.first().game)

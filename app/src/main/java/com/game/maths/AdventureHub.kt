@@ -77,10 +77,9 @@ internal fun AdventureCardBlock(title: String, description: String, onClick: () 
 fun AdventureHub(
     rounds: Int, maxNumber: Int,
     onBack: () -> Unit, onSolo: (SoloGame) -> Unit,
-    onClassic: () -> Unit, onArena: () -> Unit, onDuel: () -> Unit,
+    onClassic: () -> Unit, onDuel: () -> Unit,
     onSettings: () -> Unit, onParents: () -> Unit
 ) {
-    val tablet = LocalConfiguration.current.smallestScreenWidthDp >= 600
     BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
         val wide = maxWidth > 700.dp && maxWidth > maxHeight
         Column(
@@ -111,11 +110,6 @@ fun AdventureHub(
             AdventureCardBlock("⚔️ 计算对决",
                 "真人左右面对面对决 / AI 四档速度 · 速度或正确率优先",
                 onDuel, Modifier.fillMaxWidth())
-            if (tablet) AdventureCardBlock("🏆 对战竞技场",
-                "本地双人 / AI 电脑 · 闪电抢答、巧思挑战（进入后切竖屏）",
-                onArena, Modifier.fillMaxWidth())
-            else Text("📱 对战竞技场仅在平板开放，手机保留单人训练。",
-                color = AdventureInk, fontSize = 13.sp)
             AdventureCardBlock("👨‍👩‍👧 家长数据中心",
                 "本地练习报告、错题本、正确率和成长曲线",
                 onParents, Modifier.fillMaxWidth())

@@ -9,11 +9,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 
-enum class Screen { HOME, HUB, PLAY, SOLO, ARENA_PICK, ARENA, DUEL_PICK, DUEL, PARENTS, SETTINGS, RESULT }
+enum class Screen { HOME, HUB, PLAY, SOLO, DUEL_PICK, DUEL, PARENTS, SETTINGS, RESULT }
 
 private object SavedProgress {
     private const val PREF = "math_planet_settings"
     private const val VOLUME_MIGRATED = "music_default_25_migrated"
+    private const val TABLET_PCM_MIGRATED = "tablet_pcm_default_20261118"
 
     private fun loadMusicVolume(p: SharedPreferences): Float {
         val migrated = p.getBoolean(VOLUME_MIGRATED, false)
@@ -30,6 +31,20 @@ private object SavedProgress {
         val p = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
         val op = p.getString("ops", "ADD,SUBTRACT").orEmpty()
             .split(",").mapNotNull { key -> Operation.entries.firstOrNull { it.name == key } }.toSet()
+        val config = context.resources.configuration
+        val tablet = DeviceAudioPolicy.isTablet(
+            config.smallestScreenWidthDp,
+            config.screenLayout and android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK
+        )
+        // Existing tablet installations may still store SYSTEM_MEDIA after
+        // troubleshooting. Choose PCM on this ONE migration only, not every launch.
+        val migratePcm = DeviceAudioPolicy.usePcmOnUpgrade(
+            tablet, p.getBoolean(TABLET_PCM_MIGRATED, false)
+        )
+        if (migratePcm) p.edit()
+            .putString("voice_playback_mode", VoicePlaybackMode.DIRECT_PCM.name)
+            .putBoolean(TABLET_PCM_MIGRATED, true)
+            .apply()
         return GameSettings(
             minNumber = p.getInt("min", 0),
             maxNumber = p.getInt("max", 10),
@@ -43,7 +58,8 @@ private object SavedProgress {
             roundLength = p.getInt("rounds", 10),
             answerMode = AnswerMode.fromStored(p.getString("answer_mode", null)),
             allowNegative = false,
-            voicePlaybackMode = VoicePlaybackMode.fromStored(p.getString("voice_playback_mode", null))
+            voicePlaybackMode = if (migratePcm) VoicePlaybackMode.DIRECT_PCM else
+                VoicePlaybackMode.fromStored(p.getString("voice_playback_mode", null))
         ).normalized()
     }
     fun save(context: Context, s: GameSettings) {
@@ -123,8 +139,6 @@ class MathViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var soloGame by mutableStateOf(SoloGame.SHOP)
         private set
-    var arenaOptions by mutableStateOf(ArenaOptions())
-        private set
     var duelOptions by mutableStateOf(DuelOptions())
         private set
     var reviewQuestions by mutableStateOf<List<SkillQuestion>>(emptyList())
@@ -134,7 +148,6 @@ class MathViewModel(application: Application) : AndroidViewModel(application) {
 
     fun hub() { screen = Screen.HUB }
     fun parentDashboard() { screen = Screen.PARENTS }
-    fun arenaPicker() { screen = Screen.ARENA_PICK }
     fun duelPicker() { screen = Screen.DUEL_PICK }
     fun launchDuel(options: DuelOptions) {
         duelOptions = options
@@ -146,11 +159,6 @@ class MathViewModel(application: Application) : AndroidViewModel(application) {
         reviewQuestions = review
         adventureRun++
         screen = Screen.SOLO
-    }
-    fun launchArena(options: ArenaOptions) {
-        arenaOptions = options
-        adventureRun++
-        screen = Screen.ARENA
     }
     fun replayAdventure() { adventureRun++ }
     fun switchShopRole(role: ShopRole) {
@@ -243,7 +251,7 @@ class MathViewModel(application: Application) : AndroidViewModel(application) {
     private var settingsReturnScreen = Screen.HOME
     fun settings() {
         settingsReturnScreen = when (screen) {
-            Screen.HUB, Screen.DUEL_PICK, Screen.ARENA_PICK -> screen
+            Screen.HUB, Screen.DUEL_PICK -> screen
             else -> Screen.HOME
         }
         screen = Screen.SETTINGS

@@ -10,7 +10,6 @@ enum class SoloGame(val title: String, val emoji: String, val subtitle: String) 
     SHOP("小小商店", "🛒", "学习 1、5、10、20、50、100 元纸币"),
     REVIEW("错题专项复习", "📒", "集中练习需要巩固的题目")
 }
-enum class BattleGame(val title: String) { LIGHTNING("⚡ 闪电抢答赛"), STRATEGY("🧠 巧思挑战赛") }
 enum class SkillTopic { MIXED, CARRY, BORROW, MONEY }
 enum class ShopRole { CUSTOMER, CASHIER }
 data class SkillQuestion(
@@ -196,8 +195,7 @@ object TrainingHistory {
             }
             if (title == "算数探险" || title == SoloGame.SHOP.title ||
                 title == SoloGame.REVIEW.title ||
-                title.startsWith("计算对决·") ||
-                BattleGame.entries.any { title.startsWith("${it.title}·") }
+                title.startsWith("计算对决·")
             ) record.copy(game = title) else null
         }
 
