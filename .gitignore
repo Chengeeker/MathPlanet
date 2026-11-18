@@ -1,0 +1,12 @@
+.gradle/
+.kotlin/
+.idea/
+**/build/
+.venv_voice/
+*.log
+local.properties
+key.properties
+*.jks
+*.bks
+*.keystore
+*.iml
