@@ -10,3 +10,9 @@ key.properties
 *.bks
 *.keystore
 *.iml
+
+# Keep generated Python bytecode and release APKs out of source history
+__pycache__/
+*.pyc
+*.pyo
+*.apk
