@@ -13,9 +13,15 @@ class DeviceAudioPolicyTest {
         assertFalse(DeviceAudioPolicy.usePcmOnUpgrade(tablet = false, migrated = false))
     }
 
+    @Test fun neverRestartsAnAlreadyAudibleVoicePhrase() {
+        assertTrue(DeviceAudioPolicy.canFallbackAfterFailure(false, true))
+        assertFalse(DeviceAudioPolicy.canFallbackAfterFailure(true, true))
+        assertFalse(DeviceAudioPolicy.canFallbackAfterFailure(false, false))
+    }
+
     @Test fun tabletPcmPrebufferIsLargeEnoughForStableSoftwarePlayback() {
         val target = DeviceAudioPolicy.streamBufferBytes(16384)
-        assertTrue(target >= 48000 * 4 * 3 / 4)
+        assertTrue(target >= 48000 * 4 * 18 / 10)
         assertEquals(0, target % 4)
         val start = DeviceAudioPolicy.initialBytesForPrebuffer(target, 600000)
         assertTrue(start > 100000)

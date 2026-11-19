@@ -31,8 +31,8 @@ enum class VoicePlaybackMode(val label: String) {
 
 /**
  * Two testable offline narration routes:
- * DIRECT_PCM: app-side PCM conversion to 48 kHz stereo, then a SINGLE complete
- *             AudioTrack.MODE_STATIC write, with no streaming, no media codec.
+ * DIRECT_PCM: app-side PCM conversion to 48 kHz stereo, with static output
+ *             on phones and a reusable prebuffered stream on tablets.
  * SYSTEM_MEDIA: the older whole-utterance WAV MediaPlayer route for comparison.
  *
  * Playback/cancel/release all run on ONE worker thread. UI calls only change the
@@ -42,7 +42,11 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
     private data class Clip(val offset: Int, val length: Int)
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor { task ->
-        Thread(task, "MathPlanetVoiceWorker").apply { isDaemon = true }
+        Thread({
+            // AudioTrack blocking writes need to win over animation/GC contention.
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO)
+            task.run()
+        }, "MathPlanetVoiceWorker").apply { isDaemon = true }
     }
     private val pcm = context.assets.open("voicepack.pcm").use { it.readBytes() }
     private val clips = context.assets.open("voicepack.tsv").bufferedReader().use { reader ->
@@ -57,6 +61,7 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
         }.toMap()
     }
     private val lock = Any()
+    private val voiceGap = ByteArray(256) // 8ms at 16kHz PCM16; reused across clips.
     @Volatile private var generation = 0
     @Volatile private var closed = false
     @Volatile private var playbackMode = VoicePlaybackMode.DIRECT_PCM
@@ -73,12 +78,47 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
     val ready get() = pcm.isNotEmpty() && clips.size >= 100
     val clipCount get() = clips.size
 
-    /**
-     * Pre-initialize the output route on the serialized worker. A silent 50ms
-     * static track is played before the first real utterance so Android 15
-     * vendor audio initialization cannot swallow the opening narration.
-     * This runs only once and never blocks Compose's UI thread.
-     */
+    // Only accessed on the serialized voice worker. Keeping the tablet output
+    // alive avoids repeatedly tearing down the vendor audio route between short
+    // question/answer utterances (unlike a continuous video soundtrack).
+    private var bufferedOutput: AudioTrack? = null
+
+    private fun bufferedTrack(): AudioTrack {
+        bufferedOutput?.let { if (it.state == AudioTrack.STATE_INITIALIZED) return it }
+        runCatching { bufferedOutput?.release() }
+        bufferedOutput = null
+        val minimum = AudioTrack.getMinBufferSize(
+            PcmResampler.OUTPUT_SAMPLE_RATE,
+            AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT
+        )
+        check(minimum > 0) { "Invalid platform PCM buffer size: $minimum" }
+        val bufferBytes = DeviceAudioPolicy.streamBufferBytes(minimum)
+        val track = AudioTrack.Builder()
+            .setAudioAttributes(attributes())
+            .setAudioFormat(AudioFormat.Builder()
+                .setSampleRate(PcmResampler.OUTPUT_SAMPLE_RATE)
+                .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
+                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                .build())
+            .setTransferMode(AudioTrack.MODE_STREAM)
+            .setBufferSizeInBytes(bufferBytes)
+            .build()
+        check(track.state == AudioTrack.STATE_INITIALIZED) {
+            track.release()
+            "Buffered PCM AudioTrack failed to initialize"
+        }
+        bufferedOutput = track
+        Log.i(TAG, "Opened tablet PCM output; bufferBytes=$bufferBytes minimum=$minimum")
+        return track
+    }
+
+    private fun releaseBufferedTrack() {
+        val previous = bufferedOutput
+        bufferedOutput = null
+        runCatching { previous?.release() }
+    }
+
+    /** Warm the SAME output route that will play subsequent tablet narration. */
     fun prepare() {
         val needsWarmup = synchronized(lock) {
             if (closed || pcmPrepared || playbackMode != VoicePlaybackMode.DIRECT_PCM) false
@@ -91,44 +131,36 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
         worker.execute {
             if (closed) return@execute
             var track: AudioTrack? = null
+            var warmed = false
             try {
                 val silence = ByteArray(9600) // 50ms at 48 kHz, PCM16 stereo
-                val transferMode = if (tabletPcmOutput) AudioTrack.MODE_STREAM
-                    else AudioTrack.MODE_STATIC
-                val bufferBytes = if (tabletPcmOutput) {
-                    val minimum = AudioTrack.getMinBufferSize(
-                        PcmResampler.OUTPUT_SAMPLE_RATE,
-                        AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT
-                    )
-                    DeviceAudioPolicy.streamBufferBytes(minimum)
-                } else silence.size
-                track = AudioTrack.Builder()
+                track = if (tabletPcmOutput) bufferedTrack() else AudioTrack.Builder()
                     .setAudioAttributes(attributes())
-                    .setAudioFormat(
-                        AudioFormat.Builder()
-                            .setSampleRate(PcmResampler.OUTPUT_SAMPLE_RATE)
-                            .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
-                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                            .build()
-                    )
-                    .setTransferMode(transferMode)
-                    .setBufferSizeInBytes(bufferBytes)
+                    .setAudioFormat(AudioFormat.Builder()
+                        .setSampleRate(PcmResampler.OUTPUT_SAMPLE_RATE)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .build())
+                    .setTransferMode(AudioTrack.MODE_STATIC)
+                    .setBufferSizeInBytes(silence.size)
                     .build()
-                check(track.state == AudioTrack.STATE_INITIALIZED) {
-                    "PCM output warmup track failed to initialize"
-                }
-                check(track.write(silence, 0, silence.size) == silence.size) {
-                    "PCM output warmup write incomplete"
-                }
+                check(track.state == AudioTrack.STATE_INITIALIZED)
+                check(track.write(silence, 0, silence.size) == silence.size)
                 track.play()
                 Thread.sleep(65L)
-                Log.i(TAG, "PCM output warmed up before first narration")
+                warmed = true
+                Log.i(TAG, "PCM output warmed up; reusedOnTablet=$tabletPcmOutput")
             } catch (error: Exception) {
                 Log.w(TAG, "PCM output warmup failed; real playback will still be attempted", error)
                 synchronized(lock) { pcmPrepared = false }
             } finally {
-                runCatching { track?.stop() }
-                runCatching { track?.release() }
+                val stopped = runCatching { track?.stop() }.isSuccess
+                if (tabletPcmOutput) {
+                    val flushed = runCatching { track?.flush() }.isSuccess
+                    if (!warmed || !stopped || !flushed) releaseBufferedTrack()
+                } else {
+                    runCatching { track?.release() }
+                }
             }
         }
     }
@@ -138,6 +170,11 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
             synchronized(lock) {
                 playbackMode = mode
                 generation++
+                // A later return to PCM must run warmup again.
+                pcmPrepared = false
+            }
+            if (mode != VoicePlaybackMode.DIRECT_PCM) {
+                worker.execute { releaseBufferedTrack() }
             }
             onSpeaking(false)
         }
@@ -147,7 +184,7 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
     fun reportOff() = setStatus("中文配音已关闭")
     fun reportOn() = setStatus(
         if (playbackMode == VoicePlaybackMode.DIRECT_PCM)
-            "中文配音：软件 PCM · 48 kHz 静态缓冲"
+            "中文配音：软件 PCM · 48 kHz 缓冲输出"
         else "中文配音：系统媒体播放器"
     )
 
@@ -185,7 +222,12 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
         )
         worker.execute {
             if (!current(request)) return@execute
-            val stream = ByteArrayOutputStream()
+            // Reserve the exact final capacity to avoid array growth/GC while
+            // composing a phrase on a busy tablet.
+            val capacity = tokens.sumOf { token ->
+                clips[token]?.let { it.length + voiceGap.size } ?: 0
+            }
+            val stream = ByteArrayOutputStream(capacity)
             for (token in tokens) {
                 val clip = clips[token]
                 if (clip == null) {
@@ -193,7 +235,7 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
                     continue
                 }
                 stream.write(pcm, clip.offset, clip.length)
-                stream.write(ByteArray(256))
+                stream.write(voiceGap)
             }
             if (!current(request)) return@execute
             var success = false
@@ -236,63 +278,56 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
      * no sound. Both routes consume software-decoded 48 kHz PCM; MediaPlayer
      * and Android media codecs are NOT involved.
      *
-     * On backend failures retry on the other PCM route automatically, so the
-     * child never has to toggle "system media" to recover narration.
+     * Only fall back to another PCM route if playback did not begin, never
+     * restart a partly audible phrase.
      */
     private fun playPcmWithFallback(source: ByteArray, request: Int): Boolean {
-        fun attempt(name: String, block: () -> Boolean): Boolean {
+        // Once play() has been called, retrying from sample zero would audibly
+        // repeat an already-spoken part of the phrase. Alternate backends are
+        // only safe if the initial backend failed BEFORE beginning playback.
+        var playbackStarted = false
+        fun attempt(name: String, block: (() -> Unit) -> Boolean): Boolean {
             if (!current(request)) return false
             return try {
-                val ok = block()
-                if (!ok && current(request)) Log.w(TAG, "$name did not complete playback")
+                val ok = block { playbackStarted = true }
+                if (!ok && current(request)) {
+                    Log.w(TAG, "$name incomplete (alreadyStarted=$playbackStarted)")
+                }
                 ok
             } catch (error: Exception) {
-                Log.w(TAG, "$name failed; trying the alternate software PCM route", error)
+                Log.e(TAG, "$name failed (alreadyStarted=$playbackStarted)", error)
                 false
             }
         }
         return if (tabletPcmOutput) {
-            attempt("Buffered PCM", { playBufferedPcm(source, request) }) ||
-                attempt("Static PCM fallback", { playStaticPcm(source, request) })
+            attempt("Buffered PCM") { started -> playBufferedPcm(source, request, started) } ||
+                (DeviceAudioPolicy.canFallbackAfterFailure(playbackStarted, current(request)) && attempt("Static PCM fallback") {
+                    started -> playStaticPcm(source, request, started)
+                })
         } else {
-            attempt("Static PCM", { playStaticPcm(source, request) }) ||
-                attempt("Buffered PCM fallback", { playBufferedPcm(source, request) })
+            attempt("Static PCM") { started -> playStaticPcm(source, request, started) } ||
+                (DeviceAudioPolicy.canFallbackAfterFailure(playbackStarted, current(request)) && attempt("Buffered PCM fallback") {
+                    started -> playBufferedPcm(source, request, started)
+                })
         }
     }
 
     /**
-     * Entire phrase is resampled in memory before playback. A 750 ms hardware
-     * stream buffer with a 562 ms head start limits vendor audio underruns; the
-     * serialized worker writes the rest in blocking, frame-aligned chunks.
+     * Whole utterance is resampled before playback. The tablet's reusable
+     * AudioTrack has 1.8s of capacity and starts with up to 1.35s already queued,
+     * limiting underruns when the app competes with tablet rendering/GC.
      */
-    private fun playBufferedPcm(sourcePcm16k: ByteArray, request: Int): Boolean {
+    private fun playBufferedPcm(sourcePcm16k: ByteArray, request: Int, onStarted: () -> Unit): Boolean {
+        val conversionStarted = SystemClock.uptimeMillis()
         val data = PcmResampler.toStereo48k(sourcePcm16k)
         if (data.isEmpty() || !current(request)) return false
-        val platformMinBytes = AudioTrack.getMinBufferSize(
-            PcmResampler.OUTPUT_SAMPLE_RATE,
-            AudioFormat.CHANNEL_OUT_STEREO,
-            AudioFormat.ENCODING_PCM_16BIT
-        )
-        check(platformMinBytes > 0) { "AudioTrack minimum output buffer unavailable: $platformMinBytes" }
-        val bufferBytes = DeviceAudioPolicy.streamBufferBytes(platformMinBytes)
+        val conversionMs = SystemClock.uptimeMillis() - conversionStarted
+        val track = bufferedTrack()
+        val bufferBytes = track.bufferSizeInFrames * DeviceAudioPolicy.BYTES_PER_FRAME
         val prebufferBytes = DeviceAudioPolicy.initialBytesForPrebuffer(bufferBytes, data.size)
-        var track: AudioTrack? = null
+        val initialUnderruns = track.underrunCount
+        var broken = false
         try {
-            track = AudioTrack.Builder()
-                .setAudioAttributes(attributes())
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setSampleRate(PcmResampler.OUTPUT_SAMPLE_RATE)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .build()
-                )
-                .setTransferMode(AudioTrack.MODE_STREAM)
-                .setBufferSizeInBytes(bufferBytes)
-                .build()
-            check(track.state == AudioTrack.STATE_INITIALIZED) {
-                "Buffered PCM AudioTrack failed to initialize"
-            }
             track.setVolume(1f)
             var written = 0
             while (written < prebufferBytes && current(request)) {
@@ -302,9 +337,11 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
                 written += n
             }
             if (!current(request)) return false
+            val headBeforePlay = track.playbackHeadPosition.toLong() and 0xffffffffL
             track.play()
+            onStarted()
+            val startedAt = SystemClock.uptimeMillis()
             while (written < data.size && current(request)) {
-                // 32KB is ~170ms of 48k stereo; cancellation stays responsive.
                 val chunk = minOf(32_768, data.size - written)
                 val n = track.write(data, written, chunk, AudioTrack.WRITE_BLOCKING)
                 check(n > 0) { "Buffered PCM output write failed: $n" }
@@ -313,34 +350,45 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
             if (!current(request) || written != data.size) return false
 
             val frames = data.size / DeviceAudioPolicy.BYTES_PER_FRAME.toLong()
-            val deadline = SystemClock.uptimeMillis() +
+            val deadline = startedAt +
                 frames * 1000L / PcmResampler.OUTPUT_SAMPLE_RATE + 2500L
             while (current(request) && SystemClock.uptimeMillis() < deadline) {
-                val head = track.playbackHeadPosition.toLong() and 0xffffffffL
+                val head = ((track.playbackHeadPosition.toLong() and 0xffffffffL) -
+                    headBeforePlay) and 0xffffffffL
                 if (head >= (frames - 240L).coerceAtLeast(0L)) {
-                    Log.i(TAG, "Buffered PCM completed; underruns=${track.underrunCount}" +
-                        " bytes=${data.size} frames=$frames")
+                    Log.i(TAG, "Buffered PCM completed request=$request" +
+                        " conversionMs=$conversionMs playedMs=${SystemClock.uptimeMillis() - startedAt}" +
+                        " bytes=${data.size} underruns=${track.underrunCount - initialUnderruns}")
                     return true
                 }
                 Thread.sleep(20L)
             }
-            if (current(request)) Log.w(TAG,
-                "Buffered PCM stalled: frames=$frames head=${track.playbackHeadPosition}" +
-                    " underruns=${track.underrunCount}")
-            return false
-        } finally {
-            if (!current(request) && track?.playState == AudioTrack.PLAYSTATE_PLAYING) {
-                runCatching {
-                    track.setVolume(0.35f)
-                    Thread.sleep(10L)
-                }
+            if (current(request)) {
+                broken = true
+                Log.w(TAG, "Buffered PCM stalled request=$request frames=$frames" +
+                    " head=${track.playbackHeadPosition} underruns=${track.underrunCount - initialUnderruns}")
             }
-            runCatching { track?.stop() }
-            runCatching { track?.release() }
+            return false
+        } catch (error: Exception) {
+            broken = true
+            throw error
+        } finally {
+            val underruns = track.underrunCount - initialUnderruns
+            if (underruns > 0) Log.w(TAG,
+                "PCM UNDERRUN request=$request count=$underruns bytes=${data.size}" +
+                    " bufferBytes=$bufferBytes prebufferBytes=$prebufferBytes")
+            if (!current(request) && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
+                runCatching { track.setVolume(0.35f); Thread.sleep(10L) }
+            }
+            val stopped = runCatching {
+                if (track.playState != AudioTrack.PLAYSTATE_STOPPED) track.stop()
+            }.isSuccess
+            val flushed = runCatching { track.flush() }.isSuccess
+            if (broken || !stopped || !flushed || closed) releaseBufferedTrack()
         }
     }
 
-    private fun playStaticPcm(sourcePcm16k: ByteArray, request: Int): Boolean {
+    private fun playStaticPcm(sourcePcm16k: ByteArray, request: Int, onStarted: () -> Unit): Boolean {
         val data = PcmResampler.toStereo48k(sourcePcm16k)
         if (data.isEmpty() || !current(request)) return false
         var track: AudioTrack? = null
@@ -370,6 +418,7 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
             if (!current(request) || written != data.size) return false
             track.setVolume(1f) // amplitude was attenuated in software
             track.play()
+            onStarted()
             val totalFrames = data.size / 4L
             val deadline = SystemClock.uptimeMillis() +
                 totalFrames * 1000L / PcmResampler.OUTPUT_SAMPLE_RATE + 2500L
@@ -452,6 +501,8 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
     fun close() {
         synchronized(lock) { closed = true; generation++ }
         onSpeaking(false)
+        // Schedule release AFTER the in-flight playback has exited.
+        worker.execute { releaseBufferedTrack() }
         worker.shutdown()
     }
 

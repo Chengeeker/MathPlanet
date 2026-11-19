@@ -15,7 +15,12 @@ internal object DeviceAudioPolicy {
 
     const val PCM_SAMPLE_RATE = 48_000
     const val BYTES_PER_FRAME = 4 // Stereo PCM16
-    const val PREBUFFER_MS = 750L
+    // Leave extra audio queued for vendor mixer scheduling jitter on tablets.
+    const val PREBUFFER_MS = 1_800L
+
+    /** Never replay an already-started narration from its beginning. */
+    fun canFallbackAfterFailure(alreadyStarted: Boolean, requestStillCurrent: Boolean): Boolean =
+        !alreadyStarted && requestStillCurrent
 
     fun streamBufferBytes(platformMinBytes: Int): Int =
         maxOf(platformMinBytes.coerceAtLeast(BYTES_PER_FRAME),
