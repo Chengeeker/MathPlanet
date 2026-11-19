@@ -1,4 +1,19 @@
-# 数学星球 Math Planet — v1.3.5
+# 数学星球 Math Planet — v1.3.7
+
+## v1.3.7：长语句 PCM 播报防阻塞修复
+
+- 平板端从 AudioTrack 的 `WRITE_BLOCKING` 改为 `WRITE_NON_BLOCKING`，分块投递长语句音频，避免音频驱动不推进时一直卡住唯一的播放线程。
+- 增加播放进度监控：如果播放头连续 1.5 秒没有前进，记录带请求号、音频总长、写入量、欠载次数的日志并重建失效音轨。
+- 兼容播放头计数重置和 32 位回绕，避免因为复用音轨造成错误的“已播放完成”判定。
+- 快速切题和取消播放时使用 `pause → flush → stop` 清空旧语句，避免剩余音频延迟新语句。
+- 94 项 JVM 单元测试、Release 构建和原证书 APK v2/v3 签名检查通过。**由于 ADB 未连接平板，这一版仍需在出现故障的设备上验证**。
+
+故障诊断：连接平板后执行 `adb logcat -v time -s MathPlanetVoice:I MathPlanetAudio:I`。重点观察 `PCM watchdog`、`PCM UNDERRUN` 和 `counterResets`。
+
+## v1.3.6：PCM 音轨复用和预缓冲优化
+
+- 平板复用 `AudioTrack.MODE_STREAM`；预缓冲容量增至约 1.8 秒，并为音频工作线程设置音频优先级。
+- 避免后端失败时从头重复播放已播出部分；增加 PCM 整句准备和播放耗时日志。
 
 ## v1.3.5：正式重发（与 v1.3.4 功能相同）
 

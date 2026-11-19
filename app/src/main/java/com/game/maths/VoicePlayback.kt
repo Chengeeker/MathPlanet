@@ -154,10 +154,14 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
                 Log.w(TAG, "PCM output warmup failed; real playback will still be attempted", error)
                 synchronized(lock) { pcmPrepared = false }
             } finally {
+                // Warmup and real playback share the same safe reset sequence.
+                val paused = runCatching {
+                    if (track?.playState == AudioTrack.PLAYSTATE_PLAYING) track.pause()
+                }.isSuccess
+                val flushed = runCatching { track?.flush() }.isSuccess
                 val stopped = runCatching { track?.stop() }.isSuccess
                 if (tabletPcmOutput) {
-                    val flushed = runCatching { track?.flush() }.isSuccess
-                    if (!warmed || !stopped || !flushed) releaseBufferedTrack()
+                    if (!warmed || !paused || !flushed || !stopped) releaseBufferedTrack()
                 } else {
                     runCatching { track?.release() }
                 }
@@ -247,7 +251,8 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
                         VoicePlaybackMode.DIRECT_PCM -> playPcmWithFallback(bytes, request)
                         VoicePlaybackMode.SYSTEM_MEDIA -> playWav(bytes, request)
                     }
-                    Log.i(TAG, "backend=" + mode.name + " samples=" + bytes.size / 2 +
+                    Log.i(TAG, "backend=" + mode.name + " request=$request" +
+                        " tokens=${tokens.size} utteranceMs=${bytes.size / 32}" +
                         " success=" + success + " elapsedMs=" +
                         (SystemClock.uptimeMillis() - startedAt))
                 }
@@ -313,9 +318,10 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
     }
 
     /**
-     * Whole utterance is resampled before playback. The tablet's reusable
-     * AudioTrack has 1.8s of capacity and starts with up to 1.35s already queued,
-     * limiting underruns when the app competes with tablet rendering/GC.
+     * Writes asynchronously to a reusable tablet AudioTrack. All PCM is decoded
+     * before playback, but long sentences must be fed as the hardware drains.
+     * NEVER call WRITE_BLOCKING here: if the vendor mixer stops advancing,
+     * a blocking write can strand the only speech worker indefinitely.
      */
     private fun playBufferedPcm(sourcePcm16k: ByteArray, request: Int, onStarted: () -> Unit): Boolean {
         val conversionStarted = SystemClock.uptimeMillis()
@@ -327,46 +333,65 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
         val prebufferBytes = DeviceAudioPolicy.initialBytesForPrebuffer(bufferBytes, data.size)
         val initialUnderruns = track.underrunCount
         var broken = false
+        var written = 0
         try {
             track.setVolume(1f)
-            var written = 0
+
+            // Prefill before play, with a bounded timeout rather than a potentially
+            // indefinite write. On a fresh stream this should complete immediately.
+            val prefillDeadline = SystemClock.uptimeMillis() + 350L
             while (written < prebufferBytes && current(request)) {
-                val n = track.write(data, written, prebufferBytes - written,
-                    AudioTrack.WRITE_BLOCKING)
-                check(n > 0) { "Buffered PCM prefill failed: $n" }
+                val size = minOf(32_768, prebufferBytes - written)
+                val n = track.write(data, written, size, AudioTrack.WRITE_NON_BLOCKING)
+                check(n >= 0) { "PCM prefill write failed: $n" }
                 written += n
+                if (n == 0) {
+                    if (SystemClock.uptimeMillis() >= prefillDeadline) break
+                    Thread.sleep(5L)
+                }
             }
             if (!current(request)) return false
-            val headBeforePlay = track.playbackHeadPosition.toLong() and 0xffffffffL
+            check(written > 0) { "PCM prefill wrote no frames" }
+
             track.play()
             onStarted()
             val startedAt = SystemClock.uptimeMillis()
-            while (written < data.size && current(request)) {
-                val chunk = minOf(32_768, data.size - written)
-                val n = track.write(data, written, chunk, AudioTrack.WRITE_BLOCKING)
-                check(n > 0) { "Buffered PCM output write failed: $n" }
-                written += n
-            }
-            if (!current(request) || written != data.size) return false
+            var lastProgressAt = startedAt
+            val progress = PcmPlaybackProgress(track.playbackHeadPosition.toLong())
 
             val frames = data.size / DeviceAudioPolicy.BYTES_PER_FRAME.toLong()
-            val deadline = startedAt +
-                frames * 1000L / PcmResampler.OUTPUT_SAMPLE_RATE + 2500L
-            while (current(request) && SystemClock.uptimeMillis() < deadline) {
-                val head = ((track.playbackHeadPosition.toLong() and 0xffffffffL) -
-                    headBeforePlay) and 0xffffffffL
-                if (head >= (frames - 240L).coerceAtLeast(0L)) {
-                    Log.i(TAG, "Buffered PCM completed request=$request" +
-                        " conversionMs=$conversionMs playedMs=${SystemClock.uptimeMillis() - startedAt}" +
-                        " bytes=${data.size} underruns=${track.underrunCount - initialUnderruns}")
+            val deadline = startedAt + frames * 1000L / PcmResampler.OUTPUT_SAMPLE_RATE + 4000L
+            while (current(request)) {
+                val now = SystemClock.uptimeMillis()
+                val headMoved = progress.observe(track.playbackHeadPosition.toLong())
+                if (headMoved) lastProgressAt = now
+
+                if (written < data.size) {
+                    // Nonblocking writes return immediately when the HAL buffer
+                    // is full. We retain cancellation and watchdog responsiveness.
+                    val size = minOf(16_384, data.size - written)
+                    val n = track.write(data, written, size, AudioTrack.WRITE_NON_BLOCKING)
+                    check(n >= 0) { "PCM stream write failed: $n" }
+                    written += n
+                }
+                if (written == data.size &&
+                    progress.playedFrames >= (frames - 240L).coerceAtLeast(0L)) {
+                    Log.i(TAG, "PCM completed request=$request" +
+                        " conversionMs=$conversionMs playedMs=${now - startedAt}" +
+                        " bytes=${data.size} underruns=${track.underrunCount - initialUnderruns}" +
+                        " counterResets=${progress.counterResets}")
                     return true
                 }
-                Thread.sleep(20L)
-            }
-            if (current(request)) {
-                broken = true
-                Log.w(TAG, "Buffered PCM stalled request=$request frames=$frames" +
-                    " head=${track.playbackHeadPosition} underruns=${track.underrunCount - initialUnderruns}")
+                if (now - lastProgressAt > 1_500L || now > deadline) {
+                    broken = true
+                    Log.e(TAG, "PCM watchdog: request=$request written=$written/${data.size}" +
+                        " headFrames=${progress.playedFrames}/$frames" +
+                        " idleMs=${now - lastProgressAt} playedMs=${now - startedAt}" +
+                        " underruns=${track.underrunCount - initialUnderruns}" +
+                        " counterResets=${progress.counterResets}")
+                    return false
+                }
+                Thread.sleep(10L)
             }
             return false
         } catch (error: Exception) {
@@ -380,11 +405,14 @@ class VoicePlayback(private val context: Context, private val onSpeaking: (Boole
             if (!current(request) && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
                 runCatching { track.setVolume(0.35f); Thread.sleep(10L) }
             }
-            val stopped = runCatching {
-                if (track.playState != AudioTrack.PLAYSTATE_STOPPED) track.stop()
+            // stop() can drain queued audio instead of cutting it immediately.
+            // pause + flush discards the remainder of an interrupted long phrase.
+            val paused = runCatching {
+                if (track.playState == AudioTrack.PLAYSTATE_PLAYING) track.pause()
             }.isSuccess
             val flushed = runCatching { track.flush() }.isSuccess
-            if (broken || !stopped || !flushed || closed) releaseBufferedTrack()
+            val stopped = runCatching { track.stop() }.isSuccess
+            if (broken || !paused || !flushed || !stopped || closed) releaseBufferedTrack()
         }
     }
 
