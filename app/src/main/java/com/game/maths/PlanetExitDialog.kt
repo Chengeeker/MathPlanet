@@ -1,4 +1,4 @@
-﻿package com.game.maths
+package com.game.maths
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -93,7 +93,7 @@ fun PlanetExitDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(
+                PinyinText(
                     "✨ 数学星球 ✨",
                     color = Color(0xFFB47543), fontWeight = FontWeight.Black, fontSize = 14.sp
                 )
@@ -115,7 +115,7 @@ fun PlanetExitDialog(
                     )
                 }
                 Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
-                Text(
+                PinyinText(
                     if (isExitApp) "今天先玩到这里吗？" else "小恐龙还想和你闯关！",
                     color = DialogInk,
                     fontWeight = FontWeight.Black,
@@ -124,7 +124,7 @@ fun PlanetExitDialog(
                     textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
-                Text(
+                PinyinText(
                     if (isExitApp)
                         "已经收集的星星和完成的关卡都会保留。下次再来，继续和小恐龙玩数学吧！"
                     else
@@ -148,7 +148,7 @@ fun PlanetExitDialog(
                     shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = QuitPink)
                 ) {
-                    Text(
+                    PinyinText(
                         if (isExitApp) "👋 退出应用" else "🏠 返回首页",
                         color = DialogInk,
                         fontSize = if (compact) 16.sp else 18.sp,

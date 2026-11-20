@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -102,6 +103,7 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
             Screen.DUEL_PICK -> model.hub()
             Screen.DUEL -> { audio.stopVoice(); model.duelPicker() }
             Screen.PARENTS -> model.hub()
+            Screen.PRACTICE -> { audio.stopVoice(); model.hub() }
             Screen.PLAY -> exitPrompt = ExitPrompt.LEAVE_ROUND
             Screen.SETTINGS -> {
                 audio.configure(settings)
@@ -120,6 +122,7 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
         } else goBack(fromSystem = true)
     }
 
+    CompositionLocalProvider(LocalPinyinEnabled provides settings.pinyinEnabled) {
     Box(Modifier.fillMaxSize().background(PlanetBackground)) {
         when (screen) {
             Screen.HOME -> HomeScreen(
@@ -136,6 +139,7 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
                 onBack = { audio.tap(); model.home() },
                 onSolo = { audio.tap(); model.launchSolo(it) },
                 onClassic = { audio.tap(); model.start() },
+                onPractice = { audio.stopVoice(); audio.tap(); model.practice() },
                 onDuel = { audio.tap(); model.duelPicker() },
                 onSettings = { audio.tap(); model.settings() },
                 onParents = { audio.tap(); model.parentDashboard() }
@@ -164,6 +168,8 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
                     onAgain = { audio.stopVoice(); model.replayAdventure() }
                 )
             }
+            Screen.PRACTICE -> PracticeScreen(audio = audio,
+                onBack = { audio.stopVoice(); model.hub() })
             Screen.PARENTS -> ParentDashboard(
                 context = context, maxNumber = settings.maxNumber,
                 onBack = { audio.tap(); model.hub() },
@@ -254,5 +260,6 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
                 }
             )
         }
+    }
     }
 }

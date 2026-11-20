@@ -33,7 +33,8 @@ data class GameSettings(
     val roundLength: Int = 10,
     val answerMode: AnswerMode = AnswerMode.MULTIPLE_CHOICE,
     val allowNegative: Boolean = false,
-    val voicePlaybackMode: VoicePlaybackMode = VoicePlaybackMode.DIRECT_PCM
+    val voicePlaybackMode: VoicePlaybackMode = VoicePlaybackMode.DIRECT_PCM,
+    val pinyinEnabled: Boolean = false
 ) {
     fun normalized(): GameSettings {
         val maximum = maxNumber.coerceIn(3, 1_000_000)

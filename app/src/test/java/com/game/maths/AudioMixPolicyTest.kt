@@ -28,9 +28,10 @@ class AudioMixPolicyTest {
         assertTrue(gate.shouldPlay(50, narrating = false))
     }
 
-    @Test fun backgroundMusicDucksRatherThanStoppingDuringNarration() {
+    @Test fun backgroundMusicPausesCompletelyWhilePcmNarrates() {
         assertEquals(0.25f, AudioMixPolicy.musicTarget(.25f, false), .0001f)
-        assertEquals(.03f, AudioMixPolicy.musicTarget(.25f, true), .0001f)
+        assertEquals(0f, AudioMixPolicy.musicTarget(.25f, true), .0001f)
+        assertEquals(0f, AudioMixPolicy.musicTarget(1f, true), .0001f)
         assertEquals(0f, AudioMixPolicy.musicTarget(0f, true), .0001f)
         assertEquals(1f, AudioMixPolicy.musicTarget(4f, false), .0001f)
     }

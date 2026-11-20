@@ -21,13 +21,25 @@ class AudioDirector(private val context: Context) {
     private val startupSpeech = StartupSpeechGate()
     private var resumed = false
     private var narrating = false
+    private var externalNarration = false
+
+    /** Arbitrary practice TTS needs the same exclusive music routing as clip narration. */
+    fun setExternalNarrating(active: Boolean) {
+        synchronized(lock) {
+            if (disposed) return
+            externalNarration = active
+            updateMusicLocked()
+        }
+    }
     private var disposed = false
     private var settings = GameSettings()
 
-    // All MediaPlayer operations are driven from the main looper; the narration
-    // worker never changes the music player's volume directly.
+    // AudioTrack and MediaPlayer must not run concurrently on PA2373. Dispatch
+    // on the main looper, but apply an on-main "speaking=true" synchronously
+    // BEFORE VoicePlayback schedules its PCM worker. This removes the 1-frame
+    // race where music is still active as voice playback begins.
     private val voice = VoicePlayback(context) { speaking ->
-        main.post {
+        val applyState = Runnable {
             synchronized(lock) {
                 if (!disposed) {
                     narrating = speaking
@@ -35,6 +47,8 @@ class AudioDirector(private val context: Context) {
                 }
             }
         }
+        if (Looper.myLooper() == Looper.getMainLooper()) applyState.run()
+        else main.post(applyState)
     }
     private val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
     private val sounds = SoundPool.Builder().setMaxStreams(2)
@@ -104,23 +118,27 @@ class AudioDirector(private val context: Context) {
         if (disposed) return
         runCatching {
             val player = music ?: return@runCatching
-            val enabled = resumed && settings.musicEnabled && settings.musicVolume > .001f
+            val target = AudioMixPolicy.musicTarget(settings.musicVolume, narrating || externalNarration)
+            val enabled = resumed && settings.musicEnabled && target > .001f
             if (!enabled) {
                 fadeToken++
                 currentMusicVolume = 0f
                 player.setVolume(0f, 0f)
-                if (player.isPlaying) player.pause()
+                if (player.isPlaying) {
+                    player.pause()
+                    if (narrating) Log.i("MathPlanetAudio", "BGM paused before PCM narration")
+                }
                 return@runCatching
             }
             if (!player.isPlaying) {
                 currentMusicVolume = 0f
                 player.setVolume(0f, 0f)
                 player.start()
+                Log.i("MathPlanetAudio", "BGM resumed between narrations")
             }
-            // BGM used to jump directly between 100% and 16% on every spoken prompt.
-            // Smoothly duck then restore instead, avoiding abrupt mixer amplitude steps.
-            val target = AudioMixPolicy.musicTarget(settings.musicVolume, narrating)
-            fadeMusicLocked(target, if (narrating) 90L else 220L)
+            // Fade only on resume; ducking still leaves a competing MediaPlayer
+            // track active and was confirmed to slow speech on the PA2373 tablet.
+            fadeMusicLocked(target, 220L)
         }.onFailure { Log.w("MathPlanetAudio", "Background music volume/state problem", it) }
     }
 
@@ -167,6 +185,23 @@ class AudioDirector(private val context: Context) {
      */
     fun keypadTap() {
         vibrateOnce(11)
+    }
+
+    /**
+     * Integrated practice questions use a separate device-TTS reader, not
+     * classic PCM voice confirmation. Their answer effects must not be
+     * suppressed by the classic voiceEnabled flag.
+     * One tap -> one result-specific sound and one haptic (never tap()+success()).
+     */
+    fun practiceAnswer(correct: Boolean) {
+        if (disposed) return
+        if (PracticeFeedbackPolicy.shouldPlayResultSound(
+                settings.soundEnabled, narrating, externalNarration)) {
+            val soundId = if (correct) successSound else retrySound
+            val volume = if (correct) .70f else .55f
+            sounds.play(soundId, volume, volume, 1, 0, 1f)
+        }
+        vibrateOnce(if (correct) 30 else 38)
     }
 
     fun success() {

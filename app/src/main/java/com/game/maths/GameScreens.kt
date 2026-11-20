@@ -102,11 +102,11 @@ fun HomeScreen(
                 ) {
                     HeaderLine(onSettings)
                     Spacer(Modifier.height(14.dp))
-                    Text("和小恐龙一起", fontSize = 25.sp, color = Deep, fontWeight = FontWeight.Bold)
-                    Text("玩转数学魔法！", fontSize = 34.sp, lineHeight = 42.sp,
+                    PinyinText("和小恐龙一起", fontSize = 25.sp, color = Deep, fontWeight = FontWeight.Bold)
+                    PinyinText("玩转数学魔法！", fontSize = 34.sp, lineHeight = 42.sp,
                         color = Deep, fontWeight = FontWeight.Black)
                     Spacer(Modifier.height(7.dp))
-                    Text("点一点，算一算，星星奖励等你拿！ 🌈",
+                    PinyinText("点一点，算一算，星星奖励等你拿！ 🌈",
                         color = Muted, fontSize = 16.sp)
                     Spacer(Modifier.height(22.dp))
                     KidMainButton("🚀 开始数学冒险", onStart, Orange)
@@ -122,10 +122,27 @@ fun HomeScreen(
             ) {
                 HeaderLine(onSettings)
                 Spacer(Modifier.height(17.dp))
-                Text("和小恐龙一起，玩转数学魔法！", fontSize = 27.sp,
-                    fontWeight = FontWeight.Black, color = Deep, textAlign = TextAlign.Center)
-                Text("点一点，算一算，星星奖励等你拿！ 🌈",
-                    fontSize = 14.sp, color = Muted, textAlign = TextAlign.Center)
+                if (LocalPinyinEnabled.current) {
+                    // Keep the hero heading readable rather than letting a
+                    // native TextView choose awkward word-by-word breaks.
+                    PinyinText("和小恐龙一起", modifier=Modifier.fillMaxWidth(),
+                        fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                        color = Deep, textAlign = TextAlign.Center, maxLines=1)
+                    Spacer(Modifier.height(3.dp))
+                    PinyinText("玩转数学魔法！", modifier=Modifier.fillMaxWidth(),
+                        fontSize = 26.sp, fontWeight = FontWeight.Black,
+                        color = Deep, textAlign = TextAlign.Center, maxLines=1)
+                    Spacer(Modifier.height(6.dp))
+                    PinyinText("点一点，算一算，",modifier=Modifier.fillMaxWidth(),
+                        fontSize=14.sp,color=Muted,textAlign=TextAlign.Center,maxLines=1)
+                    PinyinText("星星奖励等你拿！ 🌈",modifier=Modifier.fillMaxWidth(),
+                        fontSize=14.sp,color=Muted,textAlign=TextAlign.Center,maxLines=1)
+                } else {
+                    PinyinText("和小恐龙一起，玩转数学魔法！", fontSize = 27.sp,
+                        fontWeight = FontWeight.Black, color = Deep, textAlign = TextAlign.Center)
+                    PinyinText("点一点，算一算，星星奖励等你拿！ 🌈",
+                        fontSize = 14.sp, color = Muted, textAlign = TextAlign.Center)
+                }
                 Spacer(Modifier.height(13.dp))
                 MascotShowcase(Modifier.fillMaxWidth(), 175.dp)
                 Spacer(Modifier.height(18.dp))
@@ -133,7 +150,7 @@ fun HomeScreen(
                 Spacer(Modifier.height(15.dp))
                 InfoRow(settings, totalStars, completedRounds)
                 Spacer(Modifier.height(15.dp))
-                Text("🎵 开启声音，跟着节奏快乐学数学",
+                PinyinText("🎵 开启声音，跟着节奏快乐学数学",
                     fontSize = 13.sp, color = Muted)
             }
         }
@@ -143,8 +160,9 @@ fun HomeScreen(
 @Composable
 private fun HeaderLine(onSettings: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("🌟 数学星球", fontWeight = FontWeight.Black, color = Deep, fontSize = 23.sp,
-            modifier = Modifier.weight(1f))
+        PinyinText("🌟 数学星球", fontWeight = FontWeight.Black, color = Deep,
+            fontSize = if(LocalPinyinEnabled.current) 19.sp else 23.sp,
+            modifier = Modifier.weight(1f),maxLines=if(LocalPinyinEnabled.current) 2 else 1)
         SmallPill("⚙️ 设置", onSettings)
     }
 }
@@ -166,8 +184,10 @@ private fun MascotShowcase(modifier: Modifier, photoSize: Dp) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("✨ 欢迎来到快乐数字王国 ✨", fontWeight = FontWeight.Bold,
-                color = Color(0xFFA65C28), fontSize = 15.sp, textAlign = TextAlign.Center)
+            PinyinText("✨ 欢迎来到快乐数字王国 ✨",
+                modifier=Modifier.fillMaxWidth(),fontWeight = FontWeight.Bold,
+                color = Color(0xFFA65C28), fontSize = 15.sp,
+                textAlign = TextAlign.Center, maxLines=2)
             Spacer(Modifier.height(9.dp))
             Image(
                 painter = painterResource(R.drawable.mascot),
@@ -177,8 +197,9 @@ private fun MascotShowcase(modifier: Modifier, photoSize: Dp) {
                     .clip(RoundedCornerShape(26.dp))
             )
             Spacer(Modifier.height(8.dp))
-            Text("🦕 嗨！我是你的数学搭档", fontSize = 15.sp,
-                fontWeight = FontWeight.Black, color = Deep)
+            PinyinText("🦕 嗨！我是你的数学搭档",
+                modifier=Modifier.fillMaxWidth(), fontSize = 15.sp,
+                fontWeight = FontWeight.Black, color = Deep, textAlign=TextAlign.Center)
         }
     }
 }
@@ -200,10 +221,13 @@ private fun MiniStat(icon: String, value: String, name: String, modifier: Modifi
             .padding(vertical = 12.dp, horizontal = 7.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(icon, fontSize = 22.sp)
-        Text(value, fontWeight = FontWeight.Black, fontSize = if(value.length > 9) 12.sp else 17.sp,
+        PinyinText(icon, fontSize = 22.sp)
+        PinyinText(value, fontWeight = FontWeight.Black, fontSize = if(value.length > 9) 12.sp else 17.sp,
             color = Deep, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(name, fontSize = 11.sp, color = Muted)
+        PinyinText(name, modifier=Modifier.fillMaxWidth(),
+            fontSize = if (LocalPinyinEnabled.current) 12.sp else 11.sp,
+            color = Muted, textAlign=TextAlign.Center, maxLines=1,
+            overflow=TextOverflow.Ellipsis)
     }
 }
 
@@ -265,20 +289,41 @@ fun PlayScreen(
                 vertical = if (wide) 8.dp else 6.dp
             )
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                SmallPill("← 首页", onBack)
-                Spacer(Modifier.weight(1f))
-                Text("第 " + round.questionNumber + "/" + round.total + " 题",
-                    color = Deep, fontSize = if (shortPhone) 16.sp else 19.sp,
-                    fontWeight = FontWeight.Black)
-                Spacer(Modifier.weight(1f))
-                SmallPill(if (shortPhone) "🔊" else "🔊 再听", {
-                    audio.tap()
-                    p?.let { audio.sayQuestion(it, round.questionNumber, repeat = true) }
-                })
-                Spacer(Modifier.width(5.dp))
-                Text("⭐" + round.stars, color = Deep, fontSize = 17.sp,
-                    fontWeight = FontWeight.Black)
+            // Pinyin increases each word's intrinsic width. On a portrait
+            // phone, keep the progress label on a separate full-width line
+            // rather than squeezing "第 4/10 题" into two vertical fragments.
+            if (PinyinLayoutPolicy.useStackedProgressHeader(LocalPinyinEnabled.current, wide)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    SmallPill("← 首页", onBack)
+                    Spacer(Modifier.weight(1f))
+                    SmallPill("🔊", {
+                        audio.tap()
+                        p?.let { audio.sayQuestion(it, round.questionNumber, repeat = true) }
+                    })
+                    Spacer(Modifier.width(9.dp))
+                    PinyinText("⭐" + round.stars, color = Deep, fontSize = 17.sp,
+                        fontWeight = FontWeight.Black, maxLines = 1)
+                }
+                PinyinText("第 " + round.questionNumber + "/" + round.total + " 题",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center, maxLines = 1,
+                    color = Deep, fontSize = 19.sp, fontWeight = FontWeight.Black)
+            } else {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    SmallPill("← 首页", onBack)
+                    Spacer(Modifier.weight(1f))
+                    PinyinText("第 " + round.questionNumber + "/" + round.total + " 题",
+                        color = Deep, fontSize = if (shortPhone) 16.sp else 19.sp,
+                        fontWeight = FontWeight.Black, maxLines = 1)
+                    Spacer(Modifier.weight(1f))
+                    SmallPill(if (shortPhone) "🔊" else "🔊 再听", {
+                        audio.tap()
+                        p?.let { audio.sayQuestion(it, round.questionNumber, repeat = true) }
+                    })
+                    Spacer(Modifier.width(5.dp))
+                    PinyinText("⭐" + round.stars, color = Deep, fontSize = 17.sp,
+                        fontWeight = FontWeight.Black, maxLines = 1)
+                }
             }
             Spacer(Modifier.height(6.dp))
             BarProgress(round.answeredCount.toFloat() / round.total.coerceAtLeast(1))
@@ -406,22 +451,22 @@ private fun QuestionPanel(
     ) {
         if (!compact) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🦕", fontSize = 36.sp)
+                PinyinText("🦕", fontSize = 36.sp)
                 Spacer(Modifier.width(7.dp))
-                Text("来算一算吧！", fontSize = 21.sp,
+                PinyinText("来算一算吧！", fontSize = 21.sp,
                     fontWeight = FontWeight.Bold, color = Deep)
             }
         }
         Spacer(Modifier.height(if (compact) 3.dp else 18.dp))
         if (p == null) {
-            Text("这个组合暂时出不了题。\n可以调整范围或运算类型！", color = Deep,
+            PinyinText("这个组合暂时出不了题。\n可以调整范围或运算类型！", color = Deep,
                 fontSize = 19.sp, textAlign = TextAlign.Center)
             Spacer(Modifier.height(12.dp))
             KidMainButton("⚙️ 调整学习范围", onAdjust, Purple, height = 48.dp)
             return@Column
         }
         val charCount = p.expression.length
-        Text(
+        PinyinText(
             p.expression,
             fontSize = when {
                 charCount >= 35 -> 21.sp
@@ -437,13 +482,13 @@ private fun QuestionPanel(
         if (!minimal || showSteps) CountingDots(p)
         if (streak >= 2) {
             Spacer(Modifier.height(8.dp))
-            Text("🔥 连对 " + streak + " 题，太棒啦！",
+            PinyinText("🔥 连对 " + streak + " 题，太棒啦！",
                 color = Color(0xFFD86B28), fontWeight = FontWeight.Bold, fontSize = 14.sp)
         }
         Spacer(Modifier.height(if (compact) 3.dp else 11.dp))
         SmallPill(if (showSteps) "收起计算步骤 ↑" else "💡 查看过程", onShowSteps)
         if (earlyStepTap && explanationWait > 0L) {
-            Text("请先自己思考一下，$explanationWait 秒后再查看过程。",
+            PinyinText("请先自己思考一下，$explanationWait 秒后再查看过程。",
                 color = Color(0xFF9B6133), fontSize = 13.sp, textAlign = TextAlign.Center)
         }
         Spacer(Modifier.height(if (compact) 8.dp else 13.dp))
@@ -458,7 +503,7 @@ private fun QuestionPanel(
         }
         if (showSteps) {
             Spacer(Modifier.height(8.dp))
-            Text("🧩 一步一步来\n\n" + p.explanation, color = Deep,
+            PinyinText("🧩 一步一步来\n\n" + p.explanation, color = Deep,
                 fontSize = if(compact) 14.sp else 16.sp,
                 lineHeight = 25.sp, textAlign = TextAlign.Start,
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp))
@@ -488,7 +533,7 @@ private fun CountingDots(p: MathProblem) {
             }
         }
         Spacer(Modifier.height(4.dp))
-        Text(
+        PinyinText(
             if (step.operator == Operation.ADD) "粉色与绿色圆点合起来有几个？"
             else "灰色圆点代表减去的数量",
             color = Muted, fontSize = 11.sp, textAlign = TextAlign.Center
@@ -515,7 +560,7 @@ private fun AnswersPanel(
         verticalArrangement = if (spacious) Arrangement.SpaceEvenly else Arrangement.Top
     ) {
         if (p == null) {
-            Text("暂时没有符合设置的练习题，请调整学习范围或运算类型。",
+            PinyinText("暂时没有符合设置的练习题，请调整学习范围或运算类型。",
                 color = Deep, fontWeight = FontWeight.Bold)
             return@Column
         }
@@ -523,11 +568,23 @@ private fun AnswersPanel(
         if (fillIn) {
             NumericAnswerPanel(round, compact, onEnterDigit, onDeleteDigit, onToggleSign, onSubmitNumeric)
         } else {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("👇 选出正确答案", color = Deep, fontWeight = FontWeight.Black,
+            if (PinyinLayoutPolicy.useStackedAnswerHeading(LocalPinyinEnabled.current, spacious)) {
+                // Pinyin makes two side-by-side labels too wide on portrait
+                // phones and tablets. Put them on separate centered rows.
+                PinyinText("👇 选出正确答案", modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center, maxLines = 1,
+                    color = Deep, fontWeight = FontWeight.Black,
                     fontSize = if (compact) 16.sp else 20.sp)
-                Spacer(Modifier.weight(1f))
-                Text("四选一", color = Muted, fontSize = 13.sp)
+                PinyinText("四选一", modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center, maxLines = 1,
+                    color = Muted, fontSize = 13.sp)
+            } else {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    PinyinText("👇 选出正确答案", color = Deep, fontWeight = FontWeight.Black,
+                        fontSize = if (compact) 16.sp else 20.sp, maxLines = 1)
+                    Spacer(Modifier.weight(1f))
+                    PinyinText("四选一", color = Muted, fontSize = 13.sp, maxLines = 1)
+                }
             }
             Spacer(Modifier.height(if (compact) 5.dp else 10.dp))
             val colors = listOf(Rose, Azure, Orange, Mint)
@@ -557,7 +614,7 @@ private fun AnswersPanel(
             AttemptOutcome.REVEAL ->
                 MessageBanner("💛 正确答案是 " + p.answer + "，一起看看计算步骤吧。",
                     Color(0xFFEDE7FF))
-            else -> Text(
+            else -> PinyinText(
                 if (fillIn) "🌈 自己算出答案，再点击提交！" else "🌈 认真想一想，选出答案！",
                 fontSize = if (compact) 12.sp else 14.sp, color = Muted
             )
@@ -577,10 +634,10 @@ private fun NumericAnswerPanel(
     val keyHeight = if (compact) 43.dp else 55.dp
     val gap = if (compact) 4.dp else 7.dp
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("✏️ 把答案填进来", fontSize = if (compact) 15.sp else 18.sp,
+        PinyinText("✏️ 把答案填进来", fontSize = if (compact) 15.sp else 18.sp,
             fontWeight = FontWeight.Black, color = Deep)
         Spacer(Modifier.weight(1f))
-        Text("不提供选项", fontSize = 12.sp, color = Muted)
+        PinyinText("不提供选项", fontSize = 12.sp, color = Muted)
     }
     Spacer(Modifier.height(if (compact) 3.dp else 8.dp))
     Box(
@@ -590,7 +647,7 @@ private fun NumericAnswerPanel(
             .border(2.dp, Azure.copy(alpha = .7f), RoundedCornerShape(17.dp)),
         contentAlignment = Alignment.Center
     ) {
-        Text(
+        PinyinText(
             when {
                 round.numericDigits.isNotEmpty() -> round.numericDigits
                 round.resolved && round.lastOutcome == AttemptOutcome.REVEAL ->
@@ -636,7 +693,7 @@ private fun NumericAnswerPanel(
                             if (label == "⌫") Color(0xFFE5EFFC) else Color.White
                     )
                 ) {
-                    Text(label, fontSize = if (compact) 22.sp else 25.sp,
+                    PinyinText(label, fontSize = if (compact) 22.sp else 25.sp,
                         color = Deep, fontWeight = FontWeight.Black, maxLines = 1)
                 }
             }
@@ -678,7 +735,7 @@ private fun AnswerTile(
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text((if (correct) "✓ " else if (alreadyWrong) "✕ " else "") + value,
+        PinyinText((if (correct) "✓ " else if (alreadyWrong) "✕ " else "") + value,
             color = if(alreadyWrong) Muted else Deep,
             fontSize = if (value >= 100000) 22.sp else if(value > 9999) 26.sp else 34.sp,
             fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -692,7 +749,7 @@ private fun MessageBanner(text: String, background: Color) {
             .background(background).padding(horizontal = 13.dp, vertical = 11.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, textAlign = TextAlign.Center, fontSize = 15.sp, lineHeight = 20.sp,
+        PinyinText(text, textAlign = TextAlign.Center, fontSize = 15.sp, lineHeight = 20.sp,
             fontWeight = FontWeight.Bold, color = Deep)
     }
 }
@@ -719,7 +776,7 @@ fun ResultScreen(
         } else {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
                 .padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("🎊 冒险成功！ 🎊", fontSize = 29.sp, fontWeight = FontWeight.Black, color = Deep)
+                PinyinText("🎊 冒险成功！ 🎊", fontSize = 29.sp, fontWeight = FontWeight.Black, color = Deep)
                 Spacer(Modifier.height(14.dp))
                 Image(painterResource(R.drawable.mascot), contentDescription = "庆祝的小恐龙",
                     modifier = Modifier.size(176.dp).clip(RoundedCornerShape(30.dp)),
@@ -740,20 +797,20 @@ private fun ResultInfo(
 ) {
     Column(modifier,
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("🏆 闯关小英雄", fontSize = 27.sp, fontWeight = FontWeight.Black, color = Deep)
+        PinyinText("🏆 闯关小英雄", fontSize = 27.sp, fontWeight = FontWeight.Black, color = Deep)
         Spacer(Modifier.height(12.dp))
         Column(
             Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(25.dp))
                 .clip(RoundedCornerShape(25.dp)).background(Surface).padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("这次获得", fontSize = 18.sp, color = Deep)
-            Text("⭐ " + (round?.stars ?: 0) + " / " + (round?.total ?: 0),
+            PinyinText("这次获得", fontSize = 18.sp, color = Deep)
+            PinyinText("⭐ " + (round?.stars ?: 0) + " / " + (round?.total ?: 0),
                 fontSize = 42.sp, fontWeight = FontWeight.Black, color = Color(0xFFEA9637))
-            Text("🔥 最长连续答对 " + (round?.bestStreak ?: 0) + " 题",
+            PinyinText("🔥 最长连续答对 " + (round?.bestStreak ?: 0) + " 题",
                 fontSize = 15.sp, color = Muted)
             Spacer(Modifier.height(9.dp))
-            Text("你已经累计收集 " + allStars + " 颗星星！",
+            PinyinText("你已经累计收集 " + allStars + " 颗星星！",
                 fontSize = 17.sp, color = Deep, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(16.dp))
@@ -768,24 +825,60 @@ fun KidMainButton(
     label: String, onClick: () -> Unit, color: Color,
     height: Dp = 65.dp
 ) {
+    val annotated = LocalPinyinEnabled.current && PinyinReadings.containsHan(label)
+    // The original 47/55dp result buttons cannot hold ruby + Han text.
+    // Increase height only in pinyin mode; keep all old-game sizes untouched
+    // when the setting is disabled. Works in the shared phone/tablet panel.
+    val buttonHeight = PinyinLayoutPolicy.mainButtonHeightDp(height.value, annotated,label.length).dp
+    val lineLimit = PinyinLayoutPolicy.mainButtonLines(annotated,label.length)
     Button(onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(height)
+        modifier = Modifier.fillMaxWidth().height(buttonHeight)
             .shadow(7.dp, RoundedCornerShape(23.dp)),
+        contentPadding = if (annotated)
+            androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 3.dp)
+            else ButtonDefaults.ContentPadding,
         colors = ButtonDefaults.buttonColors(containerColor = color),
         shape = RoundedCornerShape(23.dp)
     ) {
-        Text(label, color = Deep, fontSize = 20.sp, fontWeight = FontWeight.Black,
-            textAlign = TextAlign.Center)
+        if (annotated) {
+            // Explicit, full-size centered container prevents the native
+            // TextView's ruby line box from drifting to the button bottom.
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                PinyinText(label, modifier = Modifier.fillMaxWidth(),
+                    color = Deep, fontSize = 19.sp, fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Center, maxLines = lineLimit,
+                    overflow = TextOverflow.Ellipsis)
+            }
+        } else {
+            // Exact pre-pinyin button layout.
+            PinyinText(label, color = Deep, fontSize = 20.sp,
+                fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+        }
     }
 }
 
 @Composable
 fun SmallPill(label: String, onClick: () -> Unit) {
-    TextButton(onClick = onClick,
-        shape = RoundedCornerShape(18.dp),
-        colors = ButtonDefaults.textButtonColors(containerColor = Color.White.copy(alpha = .92f))
-    ) {
-        Text(label, fontWeight = FontWeight.Bold, color = Deep,
-            fontSize = 14.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+    val annotated = LocalPinyinEnabled.current && PinyinReadings.containsHan(label)
+    if (annotated) {
+        TextButton(onClick = onClick,
+            modifier = Modifier.heightIn(min = 58.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                horizontal = 9.dp, vertical = 6.dp),
+            shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.textButtonColors(containerColor = Color.White.copy(alpha = .92f))
+        ) {
+            PinyinText(label, fontWeight = FontWeight.Bold, color = Deep,
+                fontSize = 14.sp, textAlign = TextAlign.Center, maxLines = 1,
+                overflow = TextOverflow.Ellipsis)
+        }
+    } else {
+        // No visual regression in the original (pinyin off) pill layout.
+        TextButton(onClick = onClick, shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.textButtonColors(containerColor = Color.White.copy(alpha = .92f))
+        ) {
+            PinyinText(label, fontWeight = FontWeight.Bold, color = Deep,
+                fontSize = 14.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+        }
     }
 }

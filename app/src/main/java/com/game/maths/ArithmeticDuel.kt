@@ -144,12 +144,12 @@ fun ArithmeticDuelPicker(
         Row(verticalAlignment = Alignment.CenterVertically) {
             SmallPill("← 游戏选择", onBack)
             Spacer(Modifier.width(8.dp))
-            Text("⚔️ 计算对决", color = AdventureInk,
+            PinyinText("⚔️ 计算对决", color = AdventureInk,
                 fontSize = 23.sp, fontWeight = FontWeight.Black)
         }
-        Text("题目遵守学习范围 0～$maxNumber；仅加减法，不与原竞技场混合。",
+        PinyinText("题目遵守学习范围 0～$maxNumber；仅加减法，不与原竞技场混合。",
             color = AdventureInk, fontSize = 14.sp)
-        Text("对决对象", color = AdventureInk, fontWeight = FontWeight.Bold)
+        PinyinText("对决对象", color = AdventureInk, fontWeight = FontWeight.Bold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AdventureChip("👫 真人双人", !selected.vsComputer) {
                 selected = selected.copy(vsComputer = false)
@@ -158,7 +158,7 @@ fun ArithmeticDuelPicker(
                 selected = selected.copy(vsComputer = true)
             }
         }
-        Text("获胜规则", color = AdventureInk, fontWeight = FontWeight.Bold)
+        PinyinText("获胜规则", color = AdventureInk, fontWeight = FontWeight.Bold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AdventureChip("⚡ 速度优先", selected.priority == DuelPriority.SPEED) {
                 selected = selected.copy(priority = DuelPriority.SPEED)
@@ -167,13 +167,13 @@ fun ArithmeticDuelPicker(
                 selected = selected.copy(priority = DuelPriority.ACCURACY)
             }
         }
-        Text(
+        PinyinText(
             if (selected.priority == DuelPriority.SPEED)
                 "双方做同一道题，谁先答对谁得 1 分，当前题立即结束；答错不影响对手。"
             else "双方各自完成同一套题，答错也进入下一题；正确题数多者赢，同分时总用时短者赢。",
             color = AdventureInk, fontSize = 14.sp, lineHeight = 21.sp)
         if (selected.vsComputer) {
-            Text("🤖 AI 反应速度",
+            PinyinText("🤖 AI 反应速度",
                 color = AdventureInk, fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 listOf("简单", "中等", "困难", "噩梦").forEachIndexed { index, title ->
@@ -182,13 +182,13 @@ fun ArithmeticDuelPicker(
                     }
                 }
             }
-            Text("只影响 AI 作答快慢；算式数字遵守探险设置中的学习范围。",
+            PinyinText("只影响 AI 作答快慢；算式数字遵守探险设置中的学习范围。",
                 color = AdventureInk, fontSize = 12.sp)
         } else {
-            Text("真人模式已开放：进入后自动横屏，左右两端分别旋转 90°。建议使用平板，手机屏幕较小。",
+            PinyinText("真人模式已开放：进入后自动横屏，左右两端分别旋转 90°。建议使用平板，手机屏幕较小。",
                 color = AdventureInk, fontSize = 13.sp)
         }
-        Text("对决题数", color = AdventureInk, fontWeight = FontWeight.Bold)
+        PinyinText("对决题数", color = AdventureInk, fontWeight = FontWeight.Bold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(5, 10, 20).forEach { amount ->
                 AdventureChip("$amount 题", selected.rounds == amount) {
@@ -366,19 +366,19 @@ fun ArithmeticDuelScreen(
         Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState())
             .padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(15.dp)) {
-            Text("🏆 计算对决结束", color = AdventureInk,
+            PinyinText("🏆 计算对决结束", color = AdventureInk,
                 fontSize = 25.sp, fontWeight = FontWeight.Black)
-            Text(when {
+            PinyinText(when {
                 verdict == 0 -> "🤝 平局！"
                 verdict > 0 -> "🎉 左侧玩家获胜！"
                 options.vsComputer -> "🤖 AI 获胜，这次再挑战吧！"
                 else -> "🎉 右侧玩家获胜！"
             }, color = AdventureInk, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("🔵 左侧：$leftCorrect 道正确 · ${leftMs / 1000.0} 秒",
+            PinyinText("🔵 左侧：$leftCorrect 道正确 · ${leftMs / 1000.0} 秒",
                 color = AdventureInk, fontSize = 18.sp)
-            Text("${if (options.vsComputer) "🤖 AI" else "🟠 右侧"}：$rightCorrect 道正确 · ${rightMs / 1000.0} 秒",
+            PinyinText("${if (options.vsComputer) "🤖 AI" else "🟠 右侧"}：$rightCorrect 道正确 · ${rightMs / 1000.0} 秒",
                 color = AdventureInk, fontSize = 18.sp)
-            Text(if (speed) "速度优先：先答对者获得该题的 1 分"
+            PinyinText(if (speed) "速度优先：先答对者获得该题的 1 分"
                 else "正确率优先：正确题数优先，同分再比较用时",
                 color = AdventureInk, fontSize = 13.sp)
             KidMainButton("🔁 再战一局", onAgain, AdventureOrange, 55.dp)
@@ -391,15 +391,15 @@ fun ArithmeticDuelScreen(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 SmallPill("← 退出对决", onBack)
                 Spacer(Modifier.weight(1f))
-                Text("🔵 $leftCorrect  :  $rightCorrect 🤖",
+                PinyinText("🔵 $leftCorrect  :  $rightCorrect 🤖",
                     color = AdventureInk, fontWeight = FontWeight.Black, fontSize = 18.sp)
             }
-            Text(if (speed) "第 ${raceIndex + 1}/${questions.size} 题"
+            PinyinText(if (speed) "第 ${raceIndex + 1}/${questions.size} 题"
                 else "你的进度 ${leftIndex.coerceAtMost(questions.size)}/${questions.size} · AI ${rightIndex.coerceAtMost(questions.size)}/${questions.size}",
                 color = AdventureInk, fontSize = 14.sp)
-            if (speed && raceWinner >= 0) Text(if (raceWinner == 0) "✅ 你抢答成功！" else "🤖 AI 抢答成功",
+            if (speed && raceWinner >= 0) PinyinText(if (raceWinner == 0) "✅ 你抢答成功！" else "🤖 AI 抢答成功",
                 color = AdventureInk, fontSize = 20.sp, fontWeight = FontWeight.Black)
-            if (leftQ == null) Text("✅ 你已完成，等待 AI 答完。", color = AdventureInk)
+            if (leftQ == null) PinyinText("✅ 你已完成，等待 AI 答完。", color = AdventureInk)
             else key(leftQ.learningKey, if (speed) raceIndex else leftIndex) {
                 DuelQuestionBoard(leftQ, questionCap, "🧑 你的题目",
                     disabled = (speed && raceWinner >= 0) || wrongLeft ||
@@ -411,7 +411,7 @@ fun ArithmeticDuelScreen(
             Column(Modifier.fillMaxWidth().background(AdventureCard,
                 RoundedCornerShape(16.dp)).padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("🤖 AI ${if (rightQ == null) "已完成" else if (rightFeedback != null) "已作答" else "正在解题"} · ${listOf("简单", "中等", "困难", "噩梦")[options.computerLevel.coerceIn(0, 3)]}",
+                PinyinText("🤖 AI ${if (rightQ == null) "已完成" else if (rightFeedback != null) "已作答" else "正在解题"} · ${listOf("简单", "中等", "困难", "噩梦")[options.computerLevel.coerceIn(0, 3)]}",
                     color = AdventureInk, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 if (rightQ != null) {
                     // In accuracy mode do not expose an AI answer to a question
@@ -421,14 +421,14 @@ fun ArithmeticDuelScreen(
                         else leftIndex > rightIndex ||
                             (leftIndex == rightIndex && leftFeedback != null)
                     )
-                    Text(DuelRules.displayedEquation(
+                    PinyinText(DuelRules.displayedEquation(
                         rightQ, if (revealed) rightFeedback else null, revealed),
                         color = AdventureInk, fontWeight = FontWeight.Black, fontSize = 23.sp)
                     if (revealed)
-                        Text("正确答案 ${rightQ.answer} · AI 已提交",
+                        PinyinText("正确答案 ${rightQ.answer} · AI 已提交",
                             color = AdventureInk, fontSize = 13.sp)
                     else if (rightFeedback != null)
-                        Text("AI 已作答，等你完成同一道题再揭晓答案",
+                        PinyinText("AI 已作答，等你完成同一道题再揭晓答案",
                             color = AdventureInk, fontSize = 13.sp)
                 }
             }
@@ -507,20 +507,20 @@ private fun DuelCenterStatus(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("第 $topQuestion/$total 题",
+        PinyinText("第 $topQuestion/$total 题",
             color = AdventureInk, fontWeight = FontWeight.Black,
             fontSize = 13.sp, textAlign = TextAlign.Center)
         Column(horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("$leftScore : $rightScore",
+            PinyinText("$leftScore : $rightScore",
                 color = AdventureInk, fontWeight = FontWeight.Black,
                 fontSize = 26.sp, textAlign = TextAlign.Center)
-            Text("🔵  VS  🟠", color = AdventureInk, fontSize = 12.sp,
+            PinyinText("🔵  VS  🟠", color = AdventureInk, fontSize = 12.sp,
                 textAlign = TextAlign.Center)
-            Text("比分", color = AdventureInk.copy(alpha = .7f),
+            PinyinText("比分", color = AdventureInk.copy(alpha = .7f),
                 fontSize = 12.sp, textAlign = TextAlign.Center)
         }
-        Text("第 $bottomQuestion/$total 题",
+        PinyinText("第 $bottomQuestion/$total 题",
             color = AdventureInk, fontWeight = FontWeight.Black,
             fontSize = 13.sp, textAlign = TextAlign.Center)
     }
@@ -546,19 +546,19 @@ private fun RotatedDuelSeat(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly
         ) {
-            Text(heading, color = AdventureInk, fontWeight = FontWeight.Black,
+            PinyinText(heading, color = AdventureInk, fontWeight = FontWeight.Black,
                 fontSize = 16.sp, textAlign = TextAlign.Center)
-            if (q == null) Text("✅ 已完成！", fontSize = 22.sp, color = AdventureInk)
+            if (q == null) PinyinText("✅ 已完成！", fontSize = 22.sp, color = AdventureInk)
             else {
-                Text(DuelRules.displayedEquation(q, feedback, revealCorrect),
+                PinyinText(DuelRules.displayedEquation(q, feedback, revealCorrect),
                     color = AdventureInk, fontSize = 30.sp,
                     fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
                 if (feedback != null || revealCorrect) {
-                    Text(DuelRules.feedbackText(q, feedback, revealCorrect),
+                    PinyinText(DuelRules.feedbackText(q, feedback, revealCorrect),
                         color = AdventureInk, fontSize = 14.sp, textAlign = TextAlign.Center)
                 }
             }
-            Text(status.ifBlank { "认真计算，再选答案" }, color = AdventureInk,
+            PinyinText(status.ifBlank { "认真计算，再选答案" }, color = AdventureInk,
                 fontSize = 13.sp, textAlign = TextAlign.Center)
             // Controls last = nearest each child's outer edge after rotation.
             if (q != null) DuelChoiceGrid(q, cap, disabled, onAnswer)
@@ -578,12 +578,12 @@ private fun DuelQuestionBoard(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(heading, fontSize = 19.sp, color = AdventureInk,
+        PinyinText(heading, fontSize = 19.sp, color = AdventureInk,
             fontWeight = FontWeight.Black)
-        Text(DuelRules.displayedEquation(q, feedback, revealCorrect),
+        PinyinText(DuelRules.displayedEquation(q, feedback, revealCorrect),
             fontSize = 35.sp, color = AdventureInk, fontWeight = FontWeight.Black)
         if (feedback != null || revealCorrect) {
-            Text(DuelRules.feedbackText(q, feedback, revealCorrect),
+            PinyinText(DuelRules.feedbackText(q, feedback, revealCorrect),
                 color = AdventureInk, fontSize = 15.sp, textAlign = TextAlign.Center)
         }
         DuelChoiceGrid(q, cap, disabled, onAnswer)
@@ -605,7 +605,7 @@ private fun DuelChoiceGrid(q: SkillQuestion, cap: Int,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White, contentColor = AdventureInk)
                 ) {
-                    Text("$n", fontSize = 25.sp, fontWeight = FontWeight.Black)
+                    PinyinText("$n", fontSize = 25.sp, fontWeight = FontWeight.Black)
                 }
             }
         }

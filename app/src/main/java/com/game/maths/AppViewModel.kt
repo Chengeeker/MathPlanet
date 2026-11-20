@@ -9,7 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 
-enum class Screen { HOME, HUB, PLAY, SOLO, DUEL_PICK, DUEL, PARENTS, SETTINGS, RESULT }
+enum class Screen { HOME, HUB, PLAY, SOLO, DUEL_PICK, DUEL, PARENTS, SETTINGS, RESULT, PRACTICE }
 
 private object SavedProgress {
     private const val PREF = "math_planet_settings"
@@ -51,6 +51,7 @@ private object SavedProgress {
             terms = p.getInt("terms", 2),
             operations = op,
             voiceEnabled = p.getBoolean("voice", true),
+            pinyinEnabled = p.getBoolean("pinyin", false),
             soundEnabled = p.getBoolean("sound", true),
             musicEnabled = p.getBoolean("music", true),
             musicVolume = loadMusicVolume(p),
@@ -69,6 +70,7 @@ private object SavedProgress {
             .putInt("terms", s.terms)
             .putString("ops", s.operations.joinToString(",") { it.name })
             .putBoolean("voice", s.voiceEnabled)
+            .putBoolean("pinyin", s.pinyinEnabled)
             .putBoolean("sound", s.soundEnabled)
             .putBoolean("music", s.musicEnabled)
             .putFloat("music_volume", s.musicVolume)
@@ -147,6 +149,7 @@ class MathViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     fun hub() { screen = Screen.HUB }
+    fun practice() { screen = Screen.PRACTICE }
     fun parentDashboard() { screen = Screen.PARENTS }
     fun duelPicker() { screen = Screen.DUEL_PICK }
     fun launchDuel(options: DuelOptions) {
@@ -251,7 +254,7 @@ class MathViewModel(application: Application) : AndroidViewModel(application) {
     private var settingsReturnScreen = Screen.HOME
     fun settings() {
         settingsReturnScreen = when (screen) {
-            Screen.HUB, Screen.DUEL_PICK -> screen
+            Screen.HUB, Screen.DUEL_PICK, Screen.PRACTICE -> screen
             else -> Screen.HOME
         }
         screen = Screen.SETTINGS

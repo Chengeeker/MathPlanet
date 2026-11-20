@@ -143,14 +143,14 @@ fun SoloAdventureScreen(
                 modifier = Modifier.fillMaxWidth()) {
                 SmallPill("← 游戏选择", onBack)
                 Spacer(Modifier.weight(1f))
-                Text("学习范围 0～$maxNumber", color = AdventureInk,
+                PinyinText("学习范围 0～$maxNumber", color = AdventureInk,
                     fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
-            Text(game.emoji + " " + label, fontWeight = FontWeight.Black,
+            PinyinText(game.emoji + " " + label, fontWeight = FontWeight.Black,
                 color = AdventureInk, fontSize = if (wide) 26.sp else 22.sp,
                 lineHeight = 30.sp)
             if (game == SoloGame.SHOP) {
-                Text("选一个身份开始游戏，切换身份会重新开始本轮",
+                PinyinText("选一个身份开始游戏，切换身份会重新开始本轮",
                     color = AdventureInk, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     AdventureChip("🧺 顾客 · 付款", shopRole == ShopRole.CUSTOMER) {
@@ -167,11 +167,11 @@ fun SoloAdventureScreen(
                         .padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(13.dp)
                 ) {
-                    Text("🏆 冒险完成！", color = AdventureInk, fontSize = 30.sp,
+                    PinyinText("🏆 冒险完成！", color = AdventureInk, fontSize = 30.sp,
                         fontWeight = FontWeight.Black)
-                    Text("总得分 $score · 最长连击 $bestStreak · 完成 ${questions.size} 题",
+                    PinyinText("总得分 $score · 最长连击 $bestStreak · 完成 ${questions.size} 题",
                         color = AdventureInk, fontSize = 18.sp)
-                    Text("成绩已保存到家长数据中心，错题自动收录。",
+                    PinyinText("成绩已保存到家长数据中心，错题自动收录。",
                         color = AdventureInk, textAlign = TextAlign.Center)
                     KidMainButton("🚀 再玩一轮", onAgain, AdventureOrange)
                     SmallPill("返回游戏选择", onBack)
@@ -179,10 +179,10 @@ fun SoloAdventureScreen(
             } else if (p != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically) {
-                    Text("第 ${index + 1}/${questions.size} 题", color = AdventureInk,
+                    PinyinText("第 ${index + 1}/${questions.size} 题", color = AdventureInk,
                         fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.weight(1f))
-                    Text("⭐ $score  🔥 $streak", color = AdventureInk, fontWeight = FontWeight.Bold)
+                    PinyinText("⭐ $score  🔥 $streak", color = AdventureInk, fontWeight = FontWeight.Bold)
                     // No countdown in the remaining solo modes.
                 }
                 if (wide) {
@@ -218,39 +218,39 @@ private fun QuestionSide(q: SkillQuestion, modifier: Modifier, maxNumber: Int) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(if (q.isMoney) "🛍 小小商店" else "🦕 认真想一想",
+        PinyinText(if (q.isMoney) "🛍 小小商店" else "🦕 认真想一想",
             modifier = Modifier.fillMaxWidth(), color = AdventureInk,
             fontSize = 17.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         if (q.isMoney) {
-            Text("商品价格", color = AdventureInk, fontSize = 14.sp,
+            PinyinText("商品价格", color = AdventureInk, fontSize = 14.sp,
                 textAlign = TextAlign.Center)
-            Text("¥${q.price}", color = AdventureInk, fontWeight = FontWeight.Black,
+            PinyinText("¥${q.price}", color = AdventureInk, fontWeight = FontWeight.Black,
                 fontSize = if (q.price > 999) 26.sp else 34.sp,
                 lineHeight = 39.sp, textAlign = TextAlign.Center)
             if (q.role == ShopRole.CASHIER) {
-                Text("顾客付给你", color = AdventureInk, fontSize = 14.sp)
-                Text("¥${q.paid}", color = AdventureInk, fontWeight = FontWeight.Black,
+                PinyinText("顾客付给你", color = AdventureInk, fontSize = 14.sp)
+                PinyinText("¥${q.paid}", color = AdventureInk, fontWeight = FontWeight.Black,
                     fontSize = if (q.paid > 999) 26.sp else 30.sp,
                     lineHeight = 36.sp, textAlign = TextAlign.Center)
-                Text("请找出正确的零钱", color = AdventureInk,
+                PinyinText("请找出正确的零钱", color = AdventureInk,
                     fontSize = 15.sp, textAlign = TextAlign.Center)
             } else {
-                Text("请凑出刚好的付款金额", color = AdventureInk,
+                PinyinText("请凑出刚好的付款金额", color = AdventureInk,
                     fontSize = 15.sp, textAlign = TextAlign.Center)
             }
         } else {
-            Text(q.expression, color = AdventureInk, fontWeight = FontWeight.Black,
+            PinyinText(q.expression, color = AdventureInk, fontWeight = FontWeight.Black,
                 fontSize = if (q.expression.length > 16) 23.sp else 30.sp,
                 lineHeight = 36.sp, textAlign = TextAlign.Center)
         }
-        Text("本题计算数字不超过 $maxNumber", color = Color(0xFF667692),
+        PinyinText("本题计算数字不超过 $maxNumber", color = Color(0xFF667692),
             fontSize = 12.sp, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 private fun MessageAndNext(message: String, resolved: Boolean, last: Boolean, onNext: () -> Unit) {
-    if (message.isNotBlank()) Text(message,
+    if (message.isNotBlank()) PinyinText(message,
         modifier = Modifier.fillMaxWidth().background(Color(0xFFFFEBCD),
             RoundedCornerShape(14.dp)).padding(12.dp),
         color = AdventureInk, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
@@ -279,11 +279,11 @@ internal fun ShopBoard(q: SkillQuestion, resolved: Boolean,
     var notes by remember(q) { mutableStateOf<List<Int>>(emptyList()) }
     val sum = notes.sum()
     val grouped = notes.groupingBy { it }.eachCount().toSortedMap()
-    Text(if (q.role == ShopRole.CUSTOMER) "🧺 顾客模式 · 拿纸币付款"
+    PinyinText(if (q.role == ShopRole.CUSTOMER) "🧺 顾客模式 · 拿纸币付款"
         else "🏪 店长模式 · 找出零钱",
         color = AdventureInk, fontWeight = FontWeight.Black,
         fontSize = 18.sp, lineHeight = 24.sp)
-    Text("选择纸币（单位：元）", color = AdventureInk, fontSize = 14.sp)
+    PinyinText("选择纸币（单位：元）", color = AdventureInk, fontSize = 14.sp)
     listOf(1, 5, 10, 20, 50, 100).chunked(3).forEach { moneyRow ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             moneyRow.forEach { value ->
@@ -293,16 +293,16 @@ internal fun ShopBoard(q: SkillQuestion, resolved: Boolean,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFD5EEE3), contentColor = AdventureInk),
                     shape = RoundedCornerShape(15.dp)) {
-                    Text("¥$value", fontWeight = FontWeight.Black, fontSize = 21.sp)
+                    PinyinText("¥$value", fontWeight = FontWeight.Black, fontSize = 21.sp)
                 }
             }
         }
     }
-    Text(if (notes.isEmpty()) "已选纸币：暂未选择"
+    PinyinText(if (notes.isEmpty()) "已选纸币：暂未选择"
         else "已选纸币：" + grouped.entries.joinToString("  ") { "¥${it.key} × ${it.value}" },
         color = AdventureInk, fontWeight = FontWeight.Bold,
         fontSize = 14.sp, lineHeight = 23.sp)
-    Text("已选总额：¥$sum", color = AdventureInk,
+    PinyinText("已选总额：¥$sum", color = AdventureInk,
         fontWeight = FontWeight.Black, fontSize = 24.sp)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         SmallPill("↶ 撤回一张") { if (!resolved) notes = notes.dropLast(1) }
@@ -337,7 +337,7 @@ internal fun PracticeAnswerBoard(q: SkillQuestion, resolved: Boolean,
         possible.take(6).shuffled().forEach { if (set.size < 4) set += it }
         set.shuffled()
     }
-    Text("✏️ 选出正确答案",
+    PinyinText("✏️ 选出正确答案",
         color = AdventureInk, fontSize = 17.sp, fontWeight = FontWeight.Bold)
     targets.chunked(2).forEach { pair ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -349,7 +349,7 @@ internal fun PracticeAnswerBoard(q: SkillQuestion, resolved: Boolean,
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFE0EBFF), contentColor = AdventureInk)) {
-                    Text("$value", fontWeight = FontWeight.Black, fontSize = 27.sp)
+                    PinyinText("$value", fontWeight = FontWeight.Black, fontSize = 27.sp)
                 }
             }
         }

@@ -81,11 +81,20 @@ fun SettingsScreen(
         val wide = maxWidth >= 600.dp && maxWidth > maxHeight
         val padding = if (wide) 20.dp else 15.dp
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SmallPill("← 返回", onBack)
-                Spacer(Modifier.width(12.dp))
-                Text("⚙️ 探险设置", color = SettingInk,
-                    fontSize = 25.sp, fontWeight = FontWeight.Black)
+            if(PinyinLayoutPolicy.useStackedPageHeading(LocalPinyinEnabled.current,this@BoxWithConstraints.maxWidth.value)) {
+                Column(Modifier.fillMaxWidth()) {
+                    SmallPill("← 返回",onBack)
+                    PinyinText("⚙️ 探险设置",color=SettingInk,
+                        fontSize=20.sp,fontWeight=FontWeight.Black)
+                }
+            } else {
+                Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+                    SmallPill("← 返回",onBack)
+                    Spacer(Modifier.width(12.dp))
+                    PinyinText("⚙️ 探险设置",color=SettingInk,
+                        fontSize=PinyinLayoutPolicy.pageTitleSp(25f,LocalPinyinEnabled.current).sp,
+                        fontWeight=FontWeight.Black,modifier=Modifier.weight(1f))
+                }
             }
             Spacer(Modifier.height(12.dp))
             if (wide) {
@@ -208,13 +217,13 @@ private fun AnswerModeSection(
                         .padding(vertical = 15.dp, horizontal = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(title, color = SettingInk, fontWeight = FontWeight.Bold,
+                    PinyinText(title, color = SettingInk, fontWeight = FontWeight.Bold,
                         fontSize = 15.sp, textAlign = TextAlign.Center)
                 }
             }
         }
         Spacer(Modifier.height(6.dp))
-        Text(
+        PinyinText(
             if (selected == AnswerMode.NUMERIC_INPUT)
                 "不显示候选答案，由孩子通过应用内数字键盘独立填写。"
             else "从四个数字中选择答案，适合刚开始接触数学的孩子。",
@@ -232,8 +241,8 @@ private fun SettingCard(
         .background(Color.White.copy(alpha = .94f), RoundedCornerShape(24.dp))
         .border(2.dp, Color.White, RoundedCornerShape(24.dp))
         .padding(15.dp)) {
-        Text(title, color = SettingInk, fontWeight = FontWeight.Black, fontSize = 20.sp)
-        Text(description, color = SettingGray, fontSize = 12.sp)
+        PinyinText(title, color = SettingInk, fontWeight = FontWeight.Black, fontSize = 20.sp)
+        PinyinText(description, color = SettingGray, fontSize = 12.sp)
         Spacer(Modifier.height(12.dp))
         content()
     }
@@ -262,7 +271,7 @@ private fun RangeSection(
                         .padding(vertical = 13.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(n.toString(), color = if (checked) Color.White else SettingInk,
+                    PinyinText(n.toString(), color = if (checked) Color.White else SettingInk,
                         fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
@@ -274,7 +283,7 @@ private fun RangeSection(
                     .padding(vertical = 13.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("自定义", color = if (customRange) Color.White else SettingInk,
+                PinyinText("自定义", color = if (customRange) Color.White else SettingInk,
                     fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
@@ -286,13 +295,13 @@ private fun RangeSection(
                     if (it.length <= 7 && it.all(Char::isDigit)) onMax(it)
                 },
                 singleLine = true,
-                label = { Text("最大数字（3～1,000,000）") },
+                label = { PinyinText("最大数字（3～1,000,000）") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
         }
         Spacer(Modifier.height(7.dp))
-        Text(
+        PinyinText(
             if (invalid) "⚠️ 最大数字应为 3～1,000,000。"
             else {
                 val upper = maxText.toIntOrNull()
@@ -303,7 +312,7 @@ private fun RangeSection(
             fontSize = 14.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 5.dp)
         )
-        Text("自由算术、商店和对战的算式数字、商品价格、实付金额及答案，都在这个范围内；纸币按钮仍提供 1～100 元。",
+        PinyinText("自由算术、商店和对战的算式数字、商品价格、实付金额及答案，都在这个范围内；纸币按钮仍提供 1～100 元。",
             color = SettingGray, fontSize = 12.sp, lineHeight = 19.sp)
     }
 }
@@ -340,7 +349,7 @@ private fun OperationSection(
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(op.symbol + " " + when(op){
+                        PinyinText(op.symbol + " " + when(op){
                             Operation.ADD -> "加法"
                             Operation.SUBTRACT -> "减法"
                             Operation.MULTIPLY -> "乘法"
@@ -351,7 +360,7 @@ private fun OperationSection(
             }
             Spacer(Modifier.height(8.dp))
         }
-        Text("仅控制自由算术探险；对决固定使用加减法，所有玩法均不产生负数答案。", color = SettingGray, fontSize = 12.sp)
+        PinyinText("仅控制自由算术探险；对决固定使用加减法，所有玩法均不产生负数答案。", color = SettingGray, fontSize = 12.sp)
     }
 }
 
@@ -368,19 +377,19 @@ private fun ComplexitySection(
                         RoundedCornerShape(15.dp))
                     .clickable { audio.tap(); onTerms(n) }
                     .padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-                    Text(n.toString(), fontWeight = FontWeight.Black, fontSize = 23.sp,
+                    PinyinText(n.toString(), fontWeight = FontWeight.Black, fontSize = 23.sp,
                         color = if(checked) Color.White else SettingInk)
                 }
             }
         }
         Spacer(Modifier.height(8.dp))
-        Text(
+        PinyinText(
             if(edit.terms == 2) "例子：1 + 1"
             else "例子：" + List(edit.terms) { "1" }.joinToString(" + "),
             color = SettingGray, fontSize = 13.sp
         )
         Spacer(Modifier.height(9.dp))
-        Text("单人游戏每局 " + edit.roundLength + " 道题（自由算术、小小商店共用）",
+        PinyinText("单人游戏每局 " + edit.roundLength + " 道题（自由算术、小小商店共用）",
             color = SettingInk, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         Slider(
             value = edit.roundLength.toFloat(),
@@ -402,18 +411,21 @@ private fun AudioSection(
     onPreviewAudio: () -> Unit
 ) {
     SettingCard("🎵 声音与节奏", "像儿童动画一样，有音乐也有小恐龙的鼓励") {
+        SettingSwitch("🔤 汉字拼音辅助", "开启后为界面与题目中的汉字标注拼音；默认关闭",
+            edit.pinyinEnabled, audio) { onChange(edit.copy(pinyinEnabled=it)) }
+        Spacer(Modifier.height(7.dp))
         SettingSwitch("🗣️ 中文语音", "内置离线中文读题和鼓励",
             edit.voiceEnabled, audio) { onChange(edit.copy(voiceEnabled=it)) }
         Spacer(Modifier.height(4.dp))
-        Text(audio.voiceStatus, color = Color(0xFF328B75), fontSize = 12.sp)
-        Text(audio.playbackStatus, color = SettingInk, fontSize = 12.sp,
+        PinyinText(audio.voiceStatus, color = Color(0xFF328B75), fontSize = 12.sp)
+        PinyinText(audio.playbackStatus, color = SettingInk, fontSize = 12.sp,
             modifier = Modifier.padding(vertical = 5.dp))
-        Text("如果试听没声音，请检查平板的媒体音量，而不是铃声音量。",
+        PinyinText("如果试听没声音，请检查平板的媒体音量，而不是铃声音量。",
             color = SettingGray, fontSize = 11.sp)
         Spacer(Modifier.height(5.dp))
         SmallPill("🔊 试听小恐龙配音", { audio.tap(); onPreviewAudio() })
         Spacer(Modifier.height(12.dp))
-        Text("🧪 配音播放方式", color = SettingInk,
+        PinyinText("🧪 配音播放方式", color = SettingInk,
             fontSize = 15.sp, fontWeight = FontWeight.Black)
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -434,12 +446,12 @@ private fun AudioSection(
                         .padding(vertical = 12.dp, horizontal = 3.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(caption, color = SettingInk, fontWeight = FontWeight.Bold,
+                    PinyinText(caption, color = SettingInk, fontWeight = FontWeight.Bold,
                         fontSize = 13.sp, textAlign = TextAlign.Center)
                 }
             }
         }
-        Text(
+        PinyinText(
             if (edit.voicePlaybackMode == VoicePlaybackMode.DIRECT_PCM)
                 "推荐尝试：应用内把音频重采样为 48 kHz，整句预加载播放，不使用媒体解码器。"
             else "旧版对照：系统 MediaPlayer 播放本地 WAV。切换后可点击上方试听。",
@@ -447,10 +459,10 @@ private fun AudioSection(
             modifier = Modifier.padding(top = 6.dp, bottom = 8.dp)
         )
         Spacer(Modifier.height(5.dp))
-        SettingSwitch("🎼 轻快背景音乐", "游戏运行时循环播放，语音时自动降低音量",
+        SettingSwitch("🎼 轻快背景音乐", "语音播报期间暂停音乐，朗读结束后恢复",
             edit.musicEnabled, audio) { onChange(edit.copy(musicEnabled=it)) }
         if (edit.musicEnabled) {
-            Text("音乐音量 " + (edit.musicVolume*100).toInt() + "%",
+            PinyinText("音乐音量 " + (edit.musicVolume*100).toInt() + "%",
                 color = SettingGray, fontSize = 12.sp)
             Slider(value = edit.musicVolume, onValueChange = {
                 onChange(edit.copy(musicVolume=it))
@@ -460,7 +472,7 @@ private fun AudioSection(
             edit.soundEnabled, audio) { onChange(edit.copy(soundEnabled=it)) }
         SettingSwitch("📳 触摸震动", "轻触、答对、答错都有不同手感",
             edit.hapticsEnabled, audio) { onChange(edit.copy(hapticsEnabled=it)) }
-        Text("全部声音均已内置，不需要联网。", fontSize = 12.sp, color = SettingGray)
+        PinyinText("全部声音均已内置，不需要联网。", fontSize = 12.sp, color = SettingGray)
     }
 }
 
@@ -472,8 +484,8 @@ private fun SettingSwitch(
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(label, color = SettingInk, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            Text(note, color = SettingGray, fontSize = 11.sp)
+            PinyinText(label, color = SettingInk, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            PinyinText(note, color = SettingGray, fontSize = 11.sp)
         }
         Switch(checked = checked, onCheckedChange = {
             audio.tap()

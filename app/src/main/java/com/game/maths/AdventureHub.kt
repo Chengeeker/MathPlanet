@@ -56,7 +56,7 @@ internal fun AdventureChip(text: String, active: Boolean, onClick: () -> Unit) {
             containerColor = if (active) AdventureOrange else Color.White,
             contentColor = AdventureInk),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-    ) { Text(text, fontWeight = if (active) FontWeight.Black else FontWeight.Medium, fontSize = 13.sp) }
+    ) { PinyinText(text, fontWeight = if (active) FontWeight.Black else FontWeight.Medium, fontSize = 13.sp) }
 }
 
 @Composable
@@ -67,9 +67,9 @@ internal fun AdventureCardBlock(title: String, description: String, onClick: () 
             .clickable(onClick = onClick).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
-        Text(title, color = AdventureInk, fontSize = 20.sp, fontWeight = FontWeight.Black)
-        Text(description, color = Color(0xFF6B809D), fontSize = 13.sp, lineHeight = 19.sp)
-        Text("点这里开始 →", color = Color(0xFFBC6730), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        PinyinText(title, color = AdventureInk, fontSize = 20.sp, fontWeight = FontWeight.Black)
+        PinyinText(description, color = Color(0xFF6B809D), fontSize = 13.sp, lineHeight = 19.sp)
+        PinyinText("点这里开始 →", color = Color(0xFFBC6730), fontWeight = FontWeight.Bold, fontSize = 14.sp)
     }
 }
 
@@ -78,7 +78,7 @@ fun AdventureHub(
     rounds: Int, maxNumber: Int,
     onBack: () -> Unit, onSolo: (SoloGame) -> Unit,
     onClassic: () -> Unit, onDuel: () -> Unit,
-    onSettings: () -> Unit, onParents: () -> Unit
+    onPractice: () -> Unit, onSettings: () -> Unit, onParents: () -> Unit
 ) {
     BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
         val wide = maxWidth > 700.dp && maxWidth > maxHeight
@@ -87,23 +87,36 @@ fun AdventureHub(
                 .padding(horizontal = if (wide) 28.dp else 15.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SmallPill("← 星球首页", onBack)
-                Spacer(Modifier.width(10.dp))
-                Text("🪐 选择数学冒险", color = AdventureInk, fontSize = 24.sp, fontWeight = FontWeight.Black)
+            if(PinyinLayoutPolicy.useStackedPageHeading(LocalPinyinEnabled.current,this@BoxWithConstraints.maxWidth.value)) {
+                Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(5.dp)) {
+                    Row {SmallPill("← 星球首页",onBack)}
+                    PinyinText("🪐 选择数学冒险",color=AdventureInk,fontSize=20.sp,
+                        fontWeight=FontWeight.Black,modifier=Modifier.fillMaxWidth())
+                }
+            } else {
+                Row(Modifier.fillMaxWidth(),verticalAlignment = Alignment.CenterVertically) {
+                    SmallPill("← 星球首页", onBack)
+                    Spacer(Modifier.width(10.dp))
+                    PinyinText("🪐 选择数学冒险", color = AdventureInk,
+                        fontSize = PinyinLayoutPolicy.pageTitleSp(24f,LocalPinyinEnabled.current).sp,
+                        fontWeight = FontWeight.Black,modifier=Modifier.weight(1f))
+                }
             }
             Row(Modifier.fillMaxWidth()
                 .background(Color.White.copy(alpha = .68f), RoundedCornerShape(16.dp))
                 .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                Text("📚 学习范围 0～$maxNumber · 单人 $rounds 题/局",
+                PinyinText("📚 学习范围 0～$maxNumber · 单人 $rounds 题/局",
                     color = AdventureInk, fontSize = 13.sp, modifier = Modifier.weight(1f))
                 SmallPill("⚙️ 调整", onSettings)
             }
-            Text("🎒 单人训练场", color = AdventureInk, fontSize = 22.sp, fontWeight = FontWeight.Black)
+            PinyinText("🎒 单人训练场", color = AdventureInk, fontSize = 22.sp, fontWeight = FontWeight.Black)
             AdventureCardBlock("🔢 算数探险",
                 "加减乘除、四选一与数字填空，遵守统一学习范围",
                 onClassic, Modifier.fillMaxWidth())
+            AdventureCardBlock("📚 综合数学练习",
+                "新增独立题型 · 默认幼小衔接 · 应用题、看图、图形与规律",
+                onPractice, Modifier.fillMaxWidth())
             AdventureCardBlock("🛒 小小商店",
                 "顾客付款或店长找零 · 1、5、10、20、50、100 元",
                 { onSolo(SoloGame.SHOP) }, Modifier.fillMaxWidth())
@@ -134,12 +147,25 @@ fun ParentDashboard(context: Context, maxNumber: Int,
     Box(Modifier.fillMaxSize().safeDrawingPadding()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(17.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SmallPill("← 返回", onBack)
-                Spacer(Modifier.width(12.dp))
-                Text("📈 家长数据中心", color = AdventureInk, fontSize = 23.sp, fontWeight = FontWeight.Black)
+            if(PinyinLayoutPolicy.useStackedPageHeading(
+                    LocalPinyinEnabled.current,
+                    androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.toFloat())) {
+                Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                    Row {SmallPill("← 返回",onBack)}
+                    PinyinText("📈 家长数据中心",modifier=Modifier.fillMaxWidth(),
+                        color=AdventureInk,fontSize=21.sp,fontWeight=FontWeight.Black,
+                        maxLines=1,softWrap=false)
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SmallPill("← 返回", onBack)
+                    Spacer(Modifier.width(12.dp))
+                    PinyinText("📈 家长数据中心", color = AdventureInk,
+                        fontSize = 23.sp, fontWeight = FontWeight.Black,
+                        maxLines=1,softWrap=false)
+                }
             }
-            Text("记录仅保存在这台设备，可随时清除", color = AdventureInk, fontSize = 13.sp)
+            PinyinText("记录仅保存在这台设备，可随时清除", color = AdventureInk, fontSize = 13.sp)
             AdventureChip(if (recording) "🔒 本地统计：已开启" else "🔕 本地统计：已关闭",
                 recording) {
                 recording = !recording
@@ -158,11 +184,37 @@ fun ParentDashboard(context: Context, maxNumber: Int,
                 Modifier.fillMaxWidth().background(AdventureCard, RoundedCornerShape(24.dp))
                     .padding(18.dp), verticalArrangement = Arrangement.spacedBy(9.dp)
             ) {
-                Text("累计练习：${shown.size} 题  ·  正确率：$rate%",
-                    fontSize = 19.sp, color = AdventureInk, fontWeight = FontWeight.Black)
-                Text("练习时长：${TrainingHistory.duration(shown) / 60000} 分钟  ·  活跃错题：${errors.size}",
-                    color = AdventureInk)
-                Text("正确率变化（按最近 10 组练习）", color = AdventureInk, fontWeight = FontWeight.Bold)
+                // Never concatenate a numeric metric to a long ruby-annotated
+                // sentence. Each label gets its own line, each number an
+                // independent single-line text component, on phone + tablet.
+                val metrics=listOf(
+                    "累计练习" to shown.size.toString(),
+                    "正确率" to "$rate%",
+                    "练习时长（分钟）" to (TrainingHistory.duration(shown)/60000).toString(),
+                    "活跃错题" to errors.size.toString()
+                )
+                metrics.chunked(2).forEach { row ->
+                    Row(Modifier.fillMaxWidth(),
+                        horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                        row.forEach { (label,value) ->
+                            Column(Modifier.weight(1f)
+                                .background(Color(0xFFF0F5FF),RoundedCornerShape(14.dp))
+                                .padding(horizontal=7.dp,vertical=12.dp),
+                                horizontalAlignment=Alignment.CenterHorizontally,
+                                verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                                PinyinText(label,modifier=Modifier.fillMaxWidth(),
+                                    color=AdventureInk,fontSize=12.sp,
+                                    textAlign=TextAlign.Center,maxLines=1,softWrap=false)
+                                // Numeric-only path intentionally avoids ruby.
+                                PinyinText(value,modifier=Modifier.fillMaxWidth(),
+                                    color=AdventureInk,fontSize=24.sp,
+                                    fontWeight=FontWeight.Black,
+                                    textAlign=TextAlign.Center,maxLines=1,softWrap=false)
+                            }
+                        }
+                    }
+                }
+                PinyinText("正确率变化（按最近 10 组练习）", color = AdventureInk, fontWeight = FontWeight.Bold)
                 val trend = shown.chunked(10).takeLast(10).map {
                     it.count { q -> q.correct }.toFloat() / it.size.coerceAtLeast(1)
                 }
@@ -184,18 +236,68 @@ fun ParentDashboard(context: Context, maxNumber: Int,
             val grouped = shown.groupBy { it.game }.toList().sortedByDescending { it.second.size }
             grouped.forEach { (game, rows) ->
                 val score = rows.count { it.correct } * 100 / rows.size
-                Text("$game：${rows.size} 题 · 正确率 $score%", color = AdventureInk)
+                Row(Modifier.fillMaxWidth()
+                    .background(Color.White.copy(alpha=.58f),RoundedCornerShape(12.dp))
+                    .padding(horizontal=10.dp,vertical=10.dp),
+                    horizontalArrangement=Arrangement.spacedBy(8.dp),
+                    verticalAlignment=Alignment.CenterVertically) {
+                    PinyinText(game,modifier=Modifier.weight(1f),
+                        color=AdventureInk,fontSize=15.sp,maxLines=2)
+                    Column(horizontalAlignment=Alignment.End,
+                        verticalArrangement=Arrangement.spacedBy(3.dp)) {
+                        PinyinText("${rows.size} 题",color=AdventureInk,fontSize=14.sp,
+                            maxLines=1,softWrap=false)
+                        PinyinText("正确率 $score%",color=AdventureInk,fontSize=13.sp,
+                            maxLines=1,softWrap=false)
+                    }
+                }
             }
-            Text("🧩 高频薄弱题 Top 10", fontSize = 19.sp, color = AdventureInk, fontWeight = FontWeight.Black)
+            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
+                horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+                PinyinText("🧩 高频薄弱题",fontSize=19.sp,color=AdventureInk,
+                    fontWeight=FontWeight.Black,maxLines=1,softWrap=false)
+                PinyinText("Top 10",fontSize=17.sp,color=AdventureInk,
+                    fontWeight=FontWeight.Black,maxLines=1,softWrap=false)
+            }
             val weak = shown.filter { !it.correct || !it.methodCorrect }.groupingBy { it.key }.eachCount()
             weak.entries.sortedByDescending { it.value }.take(10).forEachIndexed { i, entry ->
                 val label = shown.lastOrNull { it.key == entry.key }?.question ?: entry.key
-                Text("${i + 1}. $label · 错误 ${entry.value} 次", color = AdventureInk)
+                // A long question and its count must never share a text run:
+                // e.g. "错误 1 次" previously orphaned "次" on the next line.
+                Row(Modifier.fillMaxWidth()
+                    .background(Color.White.copy(alpha=.78f),RoundedCornerShape(14.dp))
+                    .padding(horizontal=12.dp,vertical=10.dp),
+                    verticalAlignment=Alignment.CenterVertically,
+                    horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                    PinyinText("${i + 1}. $label",modifier=Modifier.weight(1f),
+                        color=AdventureInk,fontSize=15.sp,maxLines=2)
+                    Column(Modifier.background(Color(0xFFEAF2FF),RoundedCornerShape(10.dp))
+                        .padding(horizontal=10.dp,vertical=6.dp),
+                        horizontalAlignment=Alignment.CenterHorizontally) {
+                        PinyinText("错误",color=AdventureInk,fontSize=12.sp,
+                            maxLines=1,softWrap=false)
+                        // Keep number + unit inside one TextView: mixed
+                        // Compose / Android baselines otherwise drift.
+                        PinyinText("${entry.value} 次",color=AdventureInk,
+                            fontWeight=FontWeight.Black,fontSize=16.sp,
+                            maxLines=1,softWrap=false,
+                            textAlign=TextAlign.Center)
+                    }
+                }
             }
-            Text("📒 错题本（${errors.size}）", fontSize = 19.sp,
-                color = AdventureInk, fontWeight = FontWeight.Black)
+            Row(Modifier.fillMaxWidth(),
+                verticalAlignment=Alignment.CenterVertically,
+                horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                PinyinText("📒 错题本",fontSize=19.sp,
+                    color=AdventureInk,fontWeight=FontWeight.Black,
+                    maxLines=1,softWrap=false)
+                // Keep count beside the heading, never on a new line.
+                PinyinText("（${errors.size}）",fontSize=18.sp,
+                    color=AdventureInk,fontWeight=FontWeight.Black,
+                    maxLines=1,softWrap=false)
+            }
             errors.take(30).forEach { r ->
-                Text("• ${r.game} · ${r.question}", color = AdventureInk)
+                PinyinText("• ${r.game} · ${r.question}", color = AdventureInk)
             }
             KidMainButton("🎯 一键练习当前错题池", {
                 val questions = errors.mapNotNull { parseRecordedQuestion(it.key) }
@@ -210,7 +312,7 @@ fun ParentDashboard(context: Context, maxNumber: Int,
                     SmallPill("清空全部记录", { confirm = "all" })
                 }
             } else {
-                Text(if (confirm == "all") "确定要删除所有练习记录吗？"
+                PinyinText(if (confirm == "all") "确定要删除所有练习记录吗？"
                 else "确定清空错题库吗？", color = Color(0xFFB64A4A), fontWeight = FontWeight.Bold)
                 Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                     SmallPill("取消", { confirm = "" })

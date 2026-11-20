@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
@@ -59,16 +60,31 @@ internal fun CompactShopScreen(
                     .padding(horizontal = if (compact) 10.dp else 14.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(gap)
             ) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    SmallPill("← 返回", onBack)
-                    Text(if (allowRoleSwitch) "🛒 $title" else "📒 $title",
-                        color = AdventureInk, fontSize = if (compact) 18.sp else 20.sp,
-                        fontWeight = FontWeight.Black, maxLines = 1,
-                        modifier = Modifier.weight(1f))
-                    Text("${questionIndex + 1}/$questionCount · ⭐$score",
-                        color = AdventureInk, fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp, maxLines = 1)
+                if(PinyinLayoutPolicy.useStackedPageHeading(
+                        LocalPinyinEnabled.current,this@BoxWithConstraints.maxWidth.value)) {
+                    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+                        SmallPill("← 返回",onBack)
+                        Spacer(Modifier.weight(1f))
+                        PinyinText("${questionIndex + 1}/$questionCount · ⭐$score",
+                            color=AdventureInk,fontWeight=FontWeight.Bold,
+                            fontSize=12.sp,maxLines=1)
+                    }
+                    PinyinText(if(allowRoleSwitch) "🛒 $title" else "📒 $title",
+                        color=AdventureInk,fontSize=18.sp,
+                        fontWeight=FontWeight.Black,maxLines=2,
+                        modifier=Modifier.fillMaxWidth())
+                } else {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        SmallPill("← 返回", onBack)
+                        PinyinText(if (allowRoleSwitch) "🛒 $title" else "📒 $title",
+                            color = AdventureInk, fontSize = if (compact) 18.sp else 20.sp,
+                            fontWeight = FontWeight.Black, maxLines = 1,
+                            modifier = Modifier.weight(1f))
+                        PinyinText("${questionIndex + 1}/$questionCount · ⭐$score",
+                            color = AdventureInk, fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp, maxLines = 1)
+                    }
                 }
                 if (allowRoleSwitch) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp),
@@ -80,10 +96,10 @@ internal fun CompactShopScreen(
                             if (activeRole != ShopRole.CASHIER) onRoleChange(ShopRole.CASHIER)
                         }
                         Spacer(Modifier.weight(1f))
-                        if (streak > 0) Text("🔥$streak", color = AdventureInk, fontSize = 13.sp)
+                        if (streak > 0) PinyinText("🔥$streak", color = AdventureInk, fontSize = 13.sp)
                     }
                 } else {
-                    Text(if (q.role == ShopRole.CASHIER) "🏪 店长找零" else "🧺 顾客付款",
+                    PinyinText(if (q.role == ShopRole.CASHIER) "🏪 店长找零" else "🧺 顾客付款",
                         fontSize = 14.sp, color = AdventureInk, fontWeight = FontWeight.Bold)
                 }
                 if (landscape) {
@@ -112,19 +128,19 @@ private fun CompactShopQuestion(q: SkillQuestion, modifier: Modifier) {
         horizontalArrangement = Arrangement.spacedBy(13.dp)
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text("🏷 商品价格", fontSize = 13.sp, color = AdventureInk)
-            Text("¥${q.price}", fontSize = if (q.price >= 10000) 24.sp else 30.sp,
+            PinyinText("🏷 商品价格", fontSize = 13.sp, color = AdventureInk)
+            PinyinText("¥${q.price}", fontSize = if (q.price >= 10000) 24.sp else 30.sp,
                 fontWeight = FontWeight.Black, color = AdventureInk, maxLines = 1)
         }
         Box(Modifier.width(1.dp).height(48.dp).background(Color(0xFFD8C89F)))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(if (q.role == ShopRole.CASHIER) "💵 顾客付款" else "🧺 你的任务",
+            PinyinText(if (q.role == ShopRole.CASHIER) "💵 顾客付款" else "🧺 你的任务",
                 fontSize = 13.sp, color = AdventureInk)
             if (q.role == ShopRole.CASHIER) {
-                Text("¥${q.paid}", fontSize = if (q.paid >= 10000) 24.sp else 30.sp,
+                PinyinText("¥${q.paid}", fontSize = if (q.paid >= 10000) 24.sp else 30.sp,
                     fontWeight = FontWeight.Black, color = AdventureInk, maxLines = 1)
             } else {
-                Text("凑齐货款", fontSize = 20.sp, fontWeight = FontWeight.Black,
+                PinyinText("凑齐货款", fontSize = 20.sp, fontWeight = FontWeight.Black,
                     color = AdventureInk, maxLines = 1)
             }
         }
@@ -148,18 +164,22 @@ private fun CompactShopBoard(
         verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("💴 选择纸币", color = AdventureInk, fontWeight = FontWeight.Black,
+            PinyinText("💴 选择纸币", color = AdventureInk, fontWeight = FontWeight.Black,
                 fontSize = 16.sp)
             Spacer(Modifier.weight(1f))
-            Text("已选 ¥$sum", color = AdventureInk, fontWeight = FontWeight.Black,
+            PinyinText("已选 ¥$sum", color = AdventureInk, fontWeight = FontWeight.Black,
                 fontSize = 19.sp, maxLines = 1)
         }
         // Reserving the feedback line avoids any layout jump after an answer.
-        Box(Modifier.fillMaxWidth().height(36.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.fillMaxWidth().heightIn(min=if(LocalPinyinEnabled.current) 68.dp else 36.dp),
+            contentAlignment = Alignment.CenterStart) {
             val hint = if (message.isNotBlank()) message else
                 if (q.role == ShopRole.CASHIER) "收到的钱减去商品价格，找出零钱。" else "选择纸币，刚好付清商品价格。"
-            Text(hint, fontSize = 13.sp, lineHeight = 17.sp, color = AdventureInk,
-                maxLines = 2, overflow = TextOverflow.Ellipsis)
+            PinyinText(hint, fontSize = 13.sp,
+                lineHeight = if(LocalPinyinEnabled.current) 25.sp else 17.sp,
+                color = AdventureInk,
+                maxLines = if(LocalPinyinEnabled.current) 3 else 2,
+                overflow = TextOverflow.Ellipsis)
         }
         denominations.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -175,13 +195,13 @@ private fun CompactShopBoard(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFD5EEE3), contentColor = AdventureInk)
                     ) {
-                        Text("¥$amount", fontWeight = FontWeight.Black,
+                        PinyinText("¥$amount", fontWeight = FontWeight.Black,
                             fontSize = if (compact) 18.sp else 20.sp)
                     }
                 }
             }
         }
-        Text(
+        PinyinText(
             if (notes.isEmpty()) "已选纸币：暂无" else
                 "已选纸币：" + noteGroups.entries.joinToString("  ") { "¥${it.key}×${it.value}" },
             color = AdventureInk, fontSize = 12.sp, maxLines = 1,
@@ -190,21 +210,23 @@ private fun CompactShopBoard(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             Button(onClick = { notes = notes.dropLast(1) },
                 enabled = notes.isNotEmpty() && !resolved,
-                modifier = Modifier.weight(.85f).height(48.dp),
+                modifier = Modifier.weight(.85f).height(if(LocalPinyinEnabled.current) 82.dp else 48.dp),
                 contentPadding = PaddingValues(2.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2EAF5),
                     contentColor = AdventureInk),
                 shape = RoundedCornerShape(13.dp)) {
-                Text("↶ 撤回", fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                PinyinText("↶ 撤回", fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                    maxLines = if(LocalPinyinEnabled.current) 2 else 1)
             }
             Button(onClick = { notes = emptyList() },
                 enabled = notes.isNotEmpty() && !resolved,
-                modifier = Modifier.weight(.75f).height(48.dp),
+                modifier = Modifier.weight(.75f).height(if(LocalPinyinEnabled.current) 82.dp else 48.dp),
                 contentPadding = PaddingValues(2.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2EAF5),
                     contentColor = AdventureInk),
                 shape = RoundedCornerShape(13.dp)) {
-                Text("清空", fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                PinyinText("清空", fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                    maxLines = if(LocalPinyinEnabled.current) 2 else 1)
             }
             Button(
                 onClick = {
@@ -217,16 +239,17 @@ private fun CompactShopBoard(
                         onCheck(sum == q.answer, hint)
                     }
                 },
-                modifier = Modifier.weight(1.55f).height(48.dp),
+                modifier = Modifier.weight(1.55f).height(if(LocalPinyinEnabled.current) 82.dp else 48.dp),
                 contentPadding = PaddingValues(horizontal = 2.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = AdventureOrange,
                     contentColor = AdventureInk),
                 shape = RoundedCornerShape(13.dp)
             ) {
-                Text(if (resolved) {
+                PinyinText(if (resolved) {
                     if (last) "🏆 看报告" else "➡ 下一题"
                 } else if (q.role == ShopRole.CASHIER) "✅ 确认找零" else "✅ 确认付款",
-                    fontSize = 14.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                    fontSize = 14.sp, fontWeight = FontWeight.Black,
+                    maxLines = if(LocalPinyinEnabled.current) 2 else 1)
             }
         }
     }

@@ -15,8 +15,8 @@ android {
         applicationId = "com.game.maths"
         minSdk = 26
         targetSdk = 35
-        versionCode = 23
-        versionName = "1.3.7"
+        versionCode = 31
+        versionName = "1.3.15"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
