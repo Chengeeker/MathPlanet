@@ -9,7 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 
-enum class Screen { HOME, HUB, PLAY, SOLO, DUEL_PICK, DUEL, PARENTS, SETTINGS, RESULT, PRACTICE }
+enum class Screen { HOME, HUB, PLAY, SOLO, DUEL_PICK, DUEL, PARENTS, SETTINGS, RESULT, PRACTICE, DEFENSE }
 
 private object SavedProgress {
     private const val PREF = "math_planet_settings"
@@ -150,6 +150,7 @@ class MathViewModel(application: Application) : AndroidViewModel(application) {
 
     fun hub() { screen = Screen.HUB }
     fun practice() { screen = Screen.PRACTICE }
+    fun launchDefense() { screen = Screen.DEFENSE }
     fun parentDashboard() { screen = Screen.PARENTS }
     fun duelPicker() { screen = Screen.DUEL_PICK }
     fun launchDuel(options: DuelOptions) {

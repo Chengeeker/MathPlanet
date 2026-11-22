@@ -1,10 +1,13 @@
 package com.game.maths
 
 import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +30,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
+    private var defenseFullscreen = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         @Suppress("DEPRECATION")
@@ -34,6 +39,21 @@ class MainActivity : ComponentActivity() {
         @Suppress("DEPRECATION")
         window.navigationBarColor = android.graphics.Color.rgb(255, 246, 226)
         setContent { MaterialTheme { MathPlanetApp() } }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus && defenseFullscreen) setDefenseFullscreen(true)
+    }
+
+    fun setDefenseFullscreen(enabled: Boolean) {
+        defenseFullscreen = enabled
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.systemBarsBehavior = if (enabled)
+            androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        else androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+        if (enabled) controller.hide(WindowInsetsCompat.Type.systemBars())
+        else controller.show(WindowInsetsCompat.Type.systemBars())
     }
 }
 
@@ -76,6 +96,19 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
             audio.close()
         }
     }
+    DisposableEffect(screen, activity) {
+        val oldOrientation = activity?.requestedOrientation
+        if (screen == Screen.DEFENSE) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            (activity as? MainActivity)?.setDefenseFullscreen(true)
+        }
+        onDispose {
+            if (screen == Screen.DEFENSE) {
+                (activity as? MainActivity)?.setDefenseFullscreen(false)
+                if (oldOrientation != null) activity.requestedOrientation = oldOrientation
+            }
+        }
+    }
     LaunchedEffect(settings) { audio.configure(settings) }
     LaunchedEffect(screen) {
         if (screen == Screen.HOME && !saidHello) {
@@ -100,6 +133,7 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
             Screen.HOME -> exitPrompt = ExitPrompt.EXIT_APP
             Screen.HUB -> model.home()
             Screen.SOLO -> { audio.stopVoice(); model.hub() }
+            Screen.DEFENSE -> { audio.stopVoice(); model.hub() }
             Screen.DUEL_PICK -> model.hub()
             Screen.DUEL -> { audio.stopVoice(); model.duelPicker() }
             Screen.PARENTS -> model.hub()
@@ -141,6 +175,7 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
                 onClassic = { audio.tap(); model.start() },
                 onPractice = { audio.stopVoice(); audio.tap(); model.practice() },
                 onDuel = { audio.tap(); model.duelPicker() },
+                onDefense = { audio.tap(); model.launchDefense() },
                 onSettings = { audio.tap(); model.settings() },
                 onParents = { audio.tap(); model.parentDashboard() }
             )
@@ -169,6 +204,8 @@ private fun MathPlanetApp(model: MathViewModel = viewModel()) {
                 )
             }
             Screen.PRACTICE -> PracticeScreen(audio = audio,
+                onBack = { audio.stopVoice(); model.hub() })
+            Screen.DEFENSE -> DefenseScreen(settings, audio,
                 onBack = { audio.stopVoice(); model.hub() })
             Screen.PARENTS -> ParentDashboard(
                 context = context, maxNumber = settings.maxNumber,

@@ -15,8 +15,9 @@ android {
         applicationId = "com.game.maths"
         minSdk = 26
         targetSdk = 35
-        versionCode = 31
-        versionName = "1.3.15"
+        versionCode = 51
+        versionName = "2.0.0"
+        ndk { abiFilters += "arm64-v8a" }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
