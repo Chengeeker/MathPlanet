@@ -288,7 +288,7 @@ internal fun DefenseScreen(
                                 val correct = engine.answer(answer, difficulty)
                                 if (correct) audio.success() else audio.retry()
                                 val autoPickupEarned = correct && engine.lastAutoPickupAward > 0
-                                statusMessage = if (autoPickupEarned) "答对5题！+$STAR_REWARD 星能，随机获得 ${engine.lastAutoPickupAward} 次自动收集"
+                                statusMessage = if (autoPickupEarned) "答对3题！+$STAR_REWARD 星能，获得 2 次自动收集"
                                     else if (correct) "答对了！+$STAR_REWARD 星能"
                                     else if (difficulty == DefenseDifficulty.NIGHTMARE) "答错了！扣除 25 星能，这颗星能已消散"
                                     else "答错了，这颗星能已消散；已有星能不受影响"

@@ -290,6 +290,7 @@ internal class DefenseEngine(private val random: Random = Random.Default) {
                 PlantKind.TRIPLE_SHOT, PlantKind.SPLIT_SHOT, PlantKind.STAR_SHOT, PlantKind.CACTUS,
                 PlantKind.CATTAIL, PlantKind.GATLING, PlantKind.GLOOM, PlantKind.LOB, PlantKind.LOB_SLOW, PlantKind.COB -> {
                     val targetZombie = zombies.firstOrNull { zombie ->
+                        if (zombie.totalHealth <= 0) return@firstOrNull false
                         val laneTarget = when (plant.type.kind) {
                             PlantKind.TRIPLE_SHOT -> zombie.row in plant.row - 1..plant.row + 1
                             PlantKind.GLOOM -> zombie.row in plant.row - 1..plant.row + 1 &&
@@ -435,10 +436,11 @@ internal class DefenseEngine(private val random: Random = Random.Default) {
             }
         }
         shots.forEach { shot ->
+            val previousX = shot.x
             shot.x += dt * shot.speed * shot.direction
             val hit = zombies.firstOrNull { it.row == shot.row &&
-                (if (shot.direction > 0) it.x >= shot.x && it.x - shot.x < .35f
-                 else it.x <= shot.x && shot.x - it.x < .35f) &&
+                it.totalHealth > 0 &&
+                it.x in (minOf(previousX, shot.x) - .35f)..(maxOf(previousX, shot.x) + .35f) &&
                 it.behaviorCanBeHitBy(shot.targetKind) }
             if (hit != null) {
                 damage(hit, shot.damage)
@@ -616,8 +618,8 @@ internal class DefenseEngine(private val random: Random = Random.Default) {
         starFlights += StarFlight(star?.row ?: pending.row, star?.col ?: pending.col,
             star?.progress ?: pending.dropProgress)
         answeredCorrectly++
-        if (answeredCorrectly % 5 == 0) {
-            lastAutoPickupAward = random.nextInt(2, 4)
+        if (answeredCorrectly % 3 == 0) {
+            lastAutoPickupAward = 2
             autoPickupCharges += lastAutoPickupAward
             collectAutoPickups()
         }
@@ -659,19 +661,19 @@ internal class DefenseEngine(private val random: Random = Random.Default) {
             elapsedMs < 60_000 -> listOf(ZombieKind.DRIFTER)
             elapsedMs < 90_000 -> listOf(ZombieKind.DRIFTER, ZombieKind.SIGNAL, ZombieKind.SHELL)
             elapsedMs < 120_000 -> listOf(ZombieKind.DRIFTER, ZombieKind.SIGNAL, ZombieKind.SHELL,
-                ZombieKind.NEWSPAPER, ZombieKind.SCREEN)
+                ZombieKind.NEWSPAPER)
             elapsedMs < 150_000 -> listOf(ZombieKind.DRIFTER, ZombieKind.SIGNAL, ZombieKind.SHELL,
-                ZombieKind.NEWSPAPER, ZombieKind.SCREEN, ZombieKind.HEAVY, ZombieKind.VAULT, ZombieKind.FOOTBALL)
-            wave == 3 -> listOf(ZombieKind.ZAMBONI, ZombieKind.BOBSLED, ZombieKind.JACK,
-                ZombieKind.BALLOON, ZombieKind.DIGGER, ZombieKind.POGO, ZombieKind.LADDER)
-            else -> listOf(ZombieKind.YETI, ZombieKind.BUNGEE, ZombieKind.CATAPULT,
-                ZombieKind.GIANT, ZombieKind.IMP, ZombieKind.DASHER)
+                ZombieKind.NEWSPAPER, ZombieKind.HEAVY, ZombieKind.VAULT, ZombieKind.FOOTBALL)
+            wave == 3 -> listOf(ZombieKind.ZAMBONI, ZombieKind.BOBSLED, ZombieKind.DOLPHIN,
+                ZombieKind.DUCK, ZombieKind.SNORKEL)
+            else -> listOf(ZombieKind.DRIFTER, ZombieKind.SIGNAL, ZombieKind.SHELL,
+                ZombieKind.NEWSPAPER, ZombieKind.HEAVY, ZombieKind.VAULT, ZombieKind.FOOTBALL,
+                ZombieKind.ZAMBONI, ZombieKind.BOBSLED, ZombieKind.DOLPHIN, ZombieKind.DUCK, ZombieKind.SNORKEL)
         }
         val eligible = pool.filter { it.threatPoints() <= availableThreat }
         if (eligible.isEmpty()) return 0
-        val type = if (wave >= 3 && ZombieKind.BOSS.threatPoints() <= availableThreat &&
-            random.nextInt(100) < 5) ZombieKind.BOSS else eligible.random(random)
-        val row = if (type in setOf(ZombieKind.DUCK, ZombieKind.SNORKEL,
+        val type = eligible.random(random)
+        val row = if (type in setOf(ZombieKind.DUCK, ZombieKind.SNORKEL, ZombieKind.ZAMBONI,
                 ZombieKind.BOBSLED, ZombieKind.DOLPHIN)) 2 else random.nextInt(5)
         val threat = type.threatPoints()
         zombies += DefenseZombieUnit(nextId++, type, row, 9.1f, spawnBudgetCost = threat)
