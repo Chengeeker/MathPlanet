@@ -18,6 +18,8 @@ class AudioDirector(private val context: Context) {
     private val main = Handler(Looper.getMainLooper())
     private val hapticGate = HapticGate(minimumIntervalMillis = 120L)
     private val clickGate = UiSoundGate(minimumIntervalMillis = 180L)
+    private val plantHitGate = UiSoundGate(minimumIntervalMillis = 110L)
+    private val zombieBiteGate = UiSoundGate(minimumIntervalMillis = 240L)
     private val startupSpeech = StartupSpeechGate()
     private var resumed = false
     private var narrating = false
@@ -51,7 +53,7 @@ class AudioDirector(private val context: Context) {
         else main.post(applyState)
     }
     private val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-    private val sounds = SoundPool.Builder().setMaxStreams(2)
+    private val sounds = SoundPool.Builder().setMaxStreams(3)
         .setAudioAttributes(AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_GAME)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -60,6 +62,8 @@ class AudioDirector(private val context: Context) {
     private val tapSound = sounds.load(context, R.raw.tap, 1)
     private val successSound = sounds.load(context, R.raw.success, 1)
     private val retrySound = sounds.load(context, R.raw.retry, 1)
+    private val plantHitSound = sounds.load(context, R.raw.plant_hit, 1)
+    private val zombieBiteSound = sounds.load(context, R.raw.zombie_bite, 1)
     private val music = runCatching {
         MediaPlayer.create(context, R.raw.adventure_loop)?.apply {
             isLooping = true
@@ -218,6 +222,20 @@ class AudioDirector(private val context: Context) {
             sounds.play(retrySound, .55f, .55f, 1, 0, 1f)
         }
         vibrateOnce(38)
+    }
+
+    fun plantHit() {
+        val now = SystemClock.elapsedRealtime()
+        if (settings.soundEnabled && plantHitGate.shouldPlay(now, narrating || externalNarration)) {
+            sounds.play(plantHitSound, .34f, .34f, 1, 0, 1f)
+        }
+    }
+
+    fun zombieBite() {
+        val now = SystemClock.elapsedRealtime()
+        if (settings.soundEnabled && zombieBiteGate.shouldPlay(now, narrating || externalNarration)) {
+            sounds.play(zombieBiteSound, .42f, .42f, 1, 0, 1f)
+        }
     }
 
     @Suppress("DEPRECATION")

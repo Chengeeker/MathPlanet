@@ -121,8 +121,8 @@ fun AdventureHub(
             AdventureCardBlock("🛒 小小商店",
                 "顾客付款或店长找零 · 1、5、10、20、50、100 元",
                 { onSolo(SoloGame.SHOP) }, Modifier.fillMaxWidth())
-            AdventureCardBlock("🌌 星球守护局",
-                "轨道布防与波次防守 · 答题收集 50 星能",
+            AdventureCardBlock("🌻 花园保卫战",
+                "草坪布防与波次防守 · 答题收集阳光",
                 onDefense, Modifier.fillMaxWidth())
             AdventureCardBlock("⚔️ 计算对决",
                 "真人左右面对面对决 / AI 四档速度 · 速度或正确率优先",

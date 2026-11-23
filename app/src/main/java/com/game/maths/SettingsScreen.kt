@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
@@ -428,26 +429,31 @@ private fun AudioSection(
         PinyinText("🧪 配音播放方式", color = SettingInk,
             fontSize = 15.sp, fontWeight = FontWeight.Black)
         Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            VoicePlaybackMode.entries.forEach { mode ->
-                val active = mode == edit.voicePlaybackMode
-                val caption = if (mode == VoicePlaybackMode.DIRECT_PCM)
-                    "PCM 软件直出" else "系统媒体播放"
-                Box(
-                    Modifier.weight(1f)
-                        .background(if (active) Color(0xFFD9F6EA)
-                            else Color(0xFFF1F3F9), RoundedCornerShape(15.dp))
-                        .border(2.dp, if (active) Color(0xFF53C8A8)
-                            else Color.Transparent, RoundedCornerShape(15.dp))
-                        .clickable {
-                            audio.tap()
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            // A phonetic annotation consumes vertical space and requires a
+            // legible full-width label. Two 50%-width chips on a phone used to
+            // split the final "出" of "PCM 软件直出" onto another line.
+            val stacked = PinyinLayoutPolicy.stackVoiceModeOptions(
+                LocalPinyinEnabled.current, maxWidth.value)
+            if (stacked) {
+                Column(Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    VoicePlaybackMode.entries.forEach { mode ->
+                        VoiceModeChoice(mode, edit.voicePlaybackMode,
+                            Modifier.fillMaxWidth(), audio) {
                             onChange(edit.copy(voicePlaybackMode = mode))
                         }
-                        .padding(vertical = 12.dp, horizontal = 3.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    PinyinText(caption, color = SettingInk, fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp, textAlign = TextAlign.Center)
+                    }
+                }
+            } else {
+                Row(Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    VoicePlaybackMode.entries.forEach { mode ->
+                        VoiceModeChoice(mode, edit.voicePlaybackMode,
+                            Modifier.weight(1f), audio) {
+                            onChange(edit.copy(voicePlaybackMode = mode))
+                        }
+                    }
                 }
             }
         }
@@ -473,6 +479,43 @@ private fun AudioSection(
         SettingSwitch("📳 触摸震动", "轻触、答对、答错都有不同手感",
             edit.hapticsEnabled, audio) { onChange(edit.copy(hapticsEnabled=it)) }
         PinyinText("全部声音均已内置，不需要联网。", fontSize = 12.sp, color = SettingGray)
+    }
+}
+
+/** Audio output choices remain single-line even with phonetic ruby enabled.
+ * On narrow annotated screens the two choices stack vertically for legibility.
+ */
+@Composable
+private fun VoiceModeChoice(
+    mode: VoicePlaybackMode,
+    selected: VoicePlaybackMode,
+    modifier: Modifier,
+    audio: AudioDirector,
+    onSelect: () -> Unit
+) {
+    val active = mode == selected
+    val annotated = LocalPinyinEnabled.current
+    val caption = if (mode == VoicePlaybackMode.DIRECT_PCM)
+        "PCM 软件直出" else "系统媒体播放"
+    Box(
+        modifier
+            .heightIn(min = if (annotated) 62.dp else 44.dp)
+            .background(if (active) Color(0xFFD9F6EA)
+                else Color(0xFFF1F3F9), RoundedCornerShape(15.dp))
+            .border(2.dp, if (active) Color(0xFF53C8A8)
+                else Color.Transparent, RoundedCornerShape(15.dp))
+            .clickable {
+                audio.tap()
+                onSelect()
+            }
+            .padding(vertical = 12.dp, horizontal = if (annotated) 9.dp else 3.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        PinyinText(caption,
+            modifier = Modifier.fillMaxWidth(),
+            color = SettingInk, fontWeight = FontWeight.Bold,
+            fontSize = 13.sp, textAlign = TextAlign.Center,
+            maxLines = 1, softWrap = false)
     }
 }
 

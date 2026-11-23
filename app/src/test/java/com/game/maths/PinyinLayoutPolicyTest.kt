@@ -45,4 +45,13 @@ class PinyinLayoutPolicyTest {
         assertTrue(PinyinLayoutPolicy.useStackedAnswerHeading(true, false))
         assertFalse(PinyinLayoutPolicy.useStackedAnswerHeading(true, true))
     }
+
+    @Test fun pinyinAudioChoiceFitsPhoneButKeepsTabletTwoColumns() {
+        assertTrue(PinyinLayoutPolicy.stackVoiceModeOptions(true, 310f))
+        assertTrue(PinyinLayoutPolicy.stackVoiceModeOptions(true, 390f))
+        assertTrue(PinyinLayoutPolicy.stackVoiceModeOptions(true, 439f))
+        assertFalse(PinyinLayoutPolicy.stackVoiceModeOptions(true, 440f))
+        assertFalse(PinyinLayoutPolicy.stackVoiceModeOptions(true, 820f))
+        assertFalse(PinyinLayoutPolicy.stackVoiceModeOptions(false, 310f))
+    }
 }

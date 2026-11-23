@@ -135,10 +135,17 @@ fun SoloAdventureScreen(
         return
     }
 
+    val soloScroll=rememberScrollState()
+    LaunchedEffect(index,game) {soloScroll.scrollTo(0)}
     BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
         val wide = maxWidth >= 650.dp && maxWidth > maxHeight
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(if (wide) 22.dp else 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        val pinNext=LandscapeActionPolicy.pinSoloNext(
+            wide,resolved,done,p!=null)
+        Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().verticalScroll(soloScroll)
+            .padding(if (wide) 22.dp else 12.dp)
+            .padding(bottom=if(pinNext) 112.dp else 0.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()) {
                 SmallPill("← 游戏选择", onBack)
@@ -194,7 +201,8 @@ fun SoloAdventureScreen(
                                 SoloBoard(p, game, maxNumber, resolved,
                                     onCheck = ::submit)
                             }
-                            MessageAndNext(message, resolved, index == questions.lastIndex, ::next)
+                            MessageAndNext(message, resolved,
+                                index == questions.lastIndex, ::next, showNext = !wide)
                         }
                     }
                 } else {
@@ -206,6 +214,16 @@ fun SoloAdventureScreen(
                     }
                 }
             }
+        }
+        if(pinNext) {
+            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                .background(Color(0xFFF2F9FF).copy(alpha=.97f))
+                .padding(horizontal=22.dp,vertical=8.dp)) {
+                KidMainButton(
+                    if(index==questions.lastIndex) "🏆 查看练习报告" else "➡️ 下一题",
+                    ::next,AdventureOrange,55.dp)
+            }
+        }
         }
     }
 }
@@ -249,12 +267,13 @@ private fun QuestionSide(q: SkillQuestion, modifier: Modifier, maxNumber: Int) {
 }
 
 @Composable
-private fun MessageAndNext(message: String, resolved: Boolean, last: Boolean, onNext: () -> Unit) {
+private fun MessageAndNext(message: String, resolved: Boolean, last: Boolean,
+    onNext: () -> Unit, showNext: Boolean = true) {
     if (message.isNotBlank()) PinyinText(message,
         modifier = Modifier.fillMaxWidth().background(Color(0xFFFFEBCD),
             RoundedCornerShape(14.dp)).padding(12.dp),
         color = AdventureInk, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
-    if (resolved) KidMainButton(if (last) "🏆 查看练习报告" else "➡️ 下一题",
+    if (resolved && showNext) KidMainButton(if (last) "🏆 查看练习报告" else "➡️ 下一题",
         onNext, AdventureOrange, 55.dp)
 }
 

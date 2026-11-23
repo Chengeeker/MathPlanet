@@ -38,7 +38,8 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 internal fun DefenseGuidebook(
-    onBack: () -> Unit, initialZombie: ZombieKind? = null, initialPlant: DefensePlant? = null
+    onBack: () -> Unit, battlefield: DefenseBattlefield = DefenseBattlefield.LAWN_POOL,
+    initialZombie: ZombieKind? = null, initialPlant: DefensePlant? = null
 ) {
     var tab by remember { mutableIntStateOf(if (initialZombie != null) 1 else 0) }
     var plant by remember { mutableStateOf(initialPlant ?: DefensePlant.PEA) }
@@ -52,7 +53,7 @@ internal fun DefenseGuidebook(
                 Text("单位图鉴", color = Color(0xFFFFC65A), fontSize = 22.sp, fontWeight = FontWeight.Black)
                 Text("看图识别 · 了解用途、限制与应对方式", color = Color.White, fontSize = 11.sp)
             }
-            GuideTab("防御模块", tab == 0) { tab = 0 }
+            GuideTab("植物", tab == 0) { tab = 0 }
             Spacer(Modifier.width(6.dp))
             GuideTab("来袭单位", tab == 1) { tab = 1 }
             Spacer(Modifier.width(6.dp))
@@ -82,7 +83,7 @@ internal fun DefenseGuidebook(
                             Text(plant.roleLabel(), color = Color(0xFF4D6681), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
-                    Text("花费 ${if (plant == DefensePlant.IMITATER) "按复制对象" else "${plant.cost} 星能"}  ·  冷却 ${if (plant == DefensePlant.IMITATER) "按复制对象" else "${plant.rechargeMs / 1_000}s"}  ·  耐久 ${plant.health}",
+                    Text("花费 ${if (plant == DefensePlant.IMITATER) "按复制对象" else "${plant.cost} 阳光"}  ·  冷却 ${if (plant == DefensePlant.IMITATER) "按复制对象" else "${plant.rechargeMs / 1_000}s"}  ·  耐久 ${plant.health}",
                         color = Color(0xFF253453), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     if (plant.intervalMs > 0) Text("${if (plant.kind == PlantKind.GENERATOR || plant.kind == PlantKind.TWIN_GENERATOR) "生产周期" else "攻击间隔"}：${plant.intervalMs / 1_000f} 秒",
                         color = Color(0xFF253453), fontSize = 11.sp)
@@ -103,12 +104,16 @@ internal fun DefenseGuidebook(
                     GuideSection("如何应对", zombie.counterText())
                 } else {
                     Text("这关的轨道", color = Color(0xFF253453), fontSize = 21.sp, fontWeight = FontWeight.Black)
-                    GuideSection("陆地轨道", "第 1、2、4、5 轨是陆地。普通防御模块放在空格；同一格不能叠放两个普通模块。")
-                    GuideSection("中央水域", "第 3 轨是水域。先放漂浮轨道板，才能把普通模块放到同一格；水生孢子灯和缠绕模块可直接部署在水面。")
-                    GuideSection("星能收集", "天空或资源模块会生成星能晶体。等它落稳后点击，再完成一道当前设置的数学题；答对 +$STAR_REWARD，答错或放弃只失去这颗晶体。")
-                    GuideSection("布防顺序", "左侧选模块，点击轨道空格部署。选择铲除后点已有模块可移除。选中单位或敌人可直接打开对应图鉴。")
-                    GuideSection("难度与暂停", "轻松：首波 20 秒，之后每 13 秒出怪并逐步加快；标准：14 秒、每 10 秒；挑战：9 秒、每 7 秒且答题不停战。敌人间隔随波次渐进缩短。轻松/标准答题时暂停。")
-                    GuideSection("本关未启用", "当前只有白天草坪和一条中央水域；夜间、雾、屋顶、墓碑等环境能力不会在本关生效，图鉴条目会注明。")
+                    GuideSection("当前战场：${battlefield.title}", battlefield.detail)
+                    GuideSection("陆地与泳池", if (battlefield.hasPool)
+                        "第 1、2、4、5 行是陆地。第 3 行为水域，普通植物和香蒲需先种荷叶；海蘑菇、缠绕海草可直接种水面。"
+                        else "当前没有水域，荷叶、海蘑菇、缠绕海草和香蒲无法部署。")
+                    if (battlefield.night) GuideSection("夜间与墓碑", "蘑菇会自动醒来；墓碑阻挡种植，选墓碑吞噬者后点击墓碑可清理。迷雾在战斗 30 秒后出现，灯笼草照亮附近 5×5 格，三叶草可暂时吹散。")
+                    if (battlefield.roof) GuideSection("屋顶与花盆", "每个屋顶格先种花盆，才能再种其他植物；花盆是承载底座，不会被僵尸啃掉。")
+                    GuideSection("阳光收集", "普通阳光答对 +$STAR_REWARD；阳光菇前 120 秒每份 +${STAR_REWARD / 2}。每份普通阳光有 20% 概率变成大阳光，连续 4 份普通后第 5 份保底出现；大阳光答对 +75，必须手动答题，自动收集不会领取。大阳光题只提高一项：扩大数字范围或多算一步，并随当前题目设置变化。答错或放弃只失去当前这份阳光。")
+                    GuideSection("种植顺序", "左侧选植物，再点击空格种下。选择铲除后点击已有植物可移除。选中植物或僵尸可直接打开对应图鉴。")
+                    GuideSection("难度与暂停", "简单：32 秒首敌、基础间隔 30 秒；困难：26 秒、25 秒；噩梦：20 秒、21 秒。波次会逐步加快。简单答题暂停，困难/噩梦答题不停战；噩梦答错扣 25 阳光。")
+                    GuideSection("经典单位交互", "磁力菇可吸走金属护具与工具；叶子保护伞覆盖周围 3×3 格，能挡蹦极抓取和篮球。屋顶战场会出现投篮、蹦极与僵王博士；夜间墓园会出现夜间专属单位。")
                 }
             }
         }
@@ -134,7 +139,7 @@ private fun GuideListPlant(entry: DefensePlant, selected: Boolean, onClick: () -
         Column(Modifier.weight(1f)) {
             Text(entry.title, color = if (selected) Color(0xFF253453) else Color.White,
                 fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${entry.cost} 星能 · ${entry.roleLabel()}",
+            Text("${entry.cost} 阳光 · ${entry.roleLabel()}",
                 color = if (selected) Color(0xFF253453) else Color(0xFFD2DFEF), fontSize = 9.sp,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -179,68 +184,75 @@ private fun DefensePlant.roleLabel() = when (kind) {
 }
 
 private fun DefensePlant.guideText() = when (this) {
-    DefensePlant.SUN -> "周期生成一颗星能晶体；晶体仍需答题收取。"
-    DefensePlant.PEA -> "向右发射单发直线脉冲，适合基础持续输出。"
-    DefensePlant.CHERRY -> "邻近敌人时爆发，对周围一片轨道造成高伤害后消失。"
-    DefensePlant.WALL -> "高耐久挡住本轨敌人，为后排争取攻击时间。"
-    DefensePlant.MINE -> "部署后充能 ${MINE_ARMING_MS / 1_000} 秒；充能期间不会被敌人啃食。充能完成后，同轨或相邻轨敌人进入附近时爆炸，对范围内目标造成高伤害。"
-    DefensePlant.SNOW -> "直线射击并使命中的敌人减速。"
-    DefensePlant.CHOMPER -> "近距离吞噬一个敌人，吞噬后需要较长时间恢复。"
-    DefensePlant.DOUBLE -> "每次攻击连续发射两发直线脉冲。"
-    DefensePlant.PUFF -> "零花费短程孢子射手；目标靠近后才会攻击。"
-    DefensePlant.SUNSHROOM -> "周期产出星能晶体；低花费、耐久较低。"
-    DefensePlant.FUME -> "发射穿透雾束，可同时打到同一路线上的多个目标。"
-    DefensePlant.GRAVE -> "用于清理墓碑；当前草坪没有墓碑，本关暂不生效。"
-    DefensePlant.HYPNO -> "接触敌人后将其转为友军；只影响一个近身目标。"
-    DefensePlant.SCAREDY -> "低花费远程射手；当前原型尚未实现受惊停火规则。"
-    DefensePlant.ICE -> "触发一次全场冻结/减速，然后消失。"
-    DefensePlant.DOOM -> "大范围高伤害奇点，影响范围覆盖全场后消失。"
-    DefensePlant.LILYPAD -> "铺在水面后，允许普通陆生模块部署在同一格。"
-    DefensePlant.SQUASH -> "压扁前方近距离目标后消失。"
-    DefensePlant.THREEPEATER -> "同时向本轨及上下相邻轨道发射脉冲。"
-    DefensePlant.TANGLE -> "水域近身时缠住并移除一个敌人。"
-    DefensePlant.JALAPENO -> "清除本轨所有敌人后消失。"
-    DefensePlant.SPIKEWEED -> "持续伤害经过本格的地面敌人；可阻挡地面压路类单位。"
-    DefensePlant.TORCHWOOD -> "增强同轨经过它的普通脉冲伤害。"
-    DefensePlant.TALLNUT -> "比普通护墙更耐打，专门拖住突破型敌人。"
-    DefensePlant.SEASHROOM -> "水域短程孢子射手，免费但只能放在水面。"
-    DefensePlant.PLANTERN -> "用于照亮迷雾；当前关卡没有迷雾，本关暂不生效。"
-    DefensePlant.CACTUS -> "直线射击，可攻击气球等空中目标。"
-    DefensePlant.BLOVER -> "驱散当前空中敌人后消失。"
-    DefensePlant.SPLITPEA -> "前方和后方都有目标时可双向射击。"
-    DefensePlant.STARFRUIT -> "向多条路线发射星形脉冲。"
-    DefensePlant.PUMPKIN -> "套在已有模块外增加一层耐久护壳；不能单独放置。"
-    DefensePlant.MAGNET -> "周期剥除近范围敌人的护甲。"
-    DefensePlant.CABBAGE -> "抛物线投射，对落点附近造成溅射伤害。"
-    DefensePlant.FLOWERPOT -> "屋顶关卡用于承载模块；当前草坪没有屋顶，本关暂不生效。"
-    DefensePlant.KERNEL -> "抛出黏性弹，命中后降低目标速度。"
-    DefensePlant.COFFEE -> "用于唤醒睡眠中的蘑菇；当前日间草坪没有睡眠状态。"
-    DefensePlant.GARLIC -> "被啃食后将敌人引向相邻路线。"
-    DefensePlant.UMBRELLA -> "用于保护邻近模块免受空投掠夺；当前版本的拦截范围仍待完善。"
-    DefensePlant.MARIGOLD -> "周期生成额外星能晶体。"
-    DefensePlant.MELON -> "抛出重型能量果，对落点及邻近敌人造成范围伤害。"
-    DefensePlant.GATLING -> "每次攻击连续发射四发脉冲。"
-    DefensePlant.TWINSUN -> "每个生产周期同时生成两颗星能晶体。"
-    DefensePlant.GLOOM -> "攻击自身周围及相邻路线的近距离敌人。"
-    DefensePlant.CATTAIL -> "自动锁定场上目标，可跨路线并攻击空中单位。"
-    DefensePlant.WINTERMELON -> "抛出冰陨石造成范围伤害并减速。"
-    DefensePlant.GOLDMAGNET -> "吸引并剥除附近敌人的金属护甲。"
-    DefensePlant.SPIKEROCK -> "强化地刺，持续伤害地面敌人并阻挡压路类单位。"
-    DefensePlant.COB -> "蓄力后轰击一大片区域，冷却时间很长。"
-    DefensePlant.IMITATER -> "复制最近部署的模块；需要先成功部署一个目标模块。"
+    DefensePlant.SUN -> "向日葵周期产出阳光；本模式以答题晶体代替阳光，答对后领取。"
+    DefensePlant.PEA -> "豌豆射手向同一行发射豌豆，造成持续伤害。"
+    DefensePlant.CHERRY -> "樱桃炸弹短暂引爆，对周围 3×3 范围造成大量伤害后消失。"
+    DefensePlant.WALL -> "坚果墙耐久很高，能挡住同一行的僵尸，为后排争取时间。"
+    DefensePlant.MINE -> "部署后充能 ${MINE_ARMING_MS / 1_000} 秒；充能期间不会被敌人啃食。充能完成后，敌人进入本格才触发，只伤害同格目标。"
+    DefensePlant.SNOW -> "寒冰射手发射冰豌豆，命中后降低僵尸移动速度。"
+    DefensePlant.CHOMPER -> "大嘴花吞掉前方一只地面僵尸；吞噬后需要较长时间恢复。"
+    DefensePlant.DOUBLE -> "双发射手每次连续发射两颗豌豆。"
+    DefensePlant.PUFF -> "小喷菇免费，孢子射程约 3 格；白天沉睡，需用咖啡豆唤醒。"
+    DefensePlant.SUNSHROOM -> "阳光菇白天沉睡；唤醒后周期产出阳光。本模式前 120 秒每颗答题晶体价值 25，之后为 50。"
+    DefensePlant.FUME -> "大喷菇白天沉睡；唤醒后向前喷射约 4 格烟雾，穿透并命中沿途僵尸，也能绕过铁门。"
+    DefensePlant.GRAVE -> "夜间墓园中会出现墓碑。选墓碑吞噬者后点击墓碑，它会咬碎墓碑并消失。"
+    DefensePlant.HYPNO -> "魅惑菇被僵尸吃掉时魅惑该僵尸，使其转为友军。"
+    DefensePlant.SCAREDY -> "胆小菇是低花费长程射手；白天沉睡，唤醒后若周围 3×3 格出现僵尸会躲藏并停火。"
+    DefensePlant.ICE -> "寒冰菇白天沉睡；唤醒后冻结全场 4 秒，再减速 5 秒后消失。"
+    DefensePlant.DOOM -> "毁灭菇白天沉睡；唤醒后延迟 ${CHERRY_FUSE_MS / 1_000f} 秒，以约 3.5 格半径爆炸并留下不可种植的弹坑。"
+    DefensePlant.LILYPAD -> "荷叶铺在水面后，可在同一格种植普通植物。"
+    DefensePlant.SQUASH -> "窝瓜压扁前方近距离的僵尸，攻击后消失。"
+    DefensePlant.THREEPEATER -> "三线射手同时向本行及上下相邻行发射豌豆。"
+    DefensePlant.TANGLE -> "缠绕海草只能种在水中；僵尸进入同格时将其拉下水。"
+    DefensePlant.JALAPENO -> "火爆辣椒清除整行僵尸后消失。"
+    DefensePlant.SPIKEWEED -> "地刺持续扎伤踩过本格的僵尸；撞上普通冰车时会与其同归于尽。"
+    DefensePlant.TORCHWOOD -> "火炬树桩将经过它的豌豆变成伤害更高的火球，并清除冰冻减速。"
+    DefensePlant.TALLNUT -> "高坚果耐久高于坚果墙，能挡路且不会被撑杆跳过。"
+    DefensePlant.SEASHROOM -> "海蘑菇免费、只能种在水中，孢子射程约 3 格；白天沉睡，需用咖啡豆唤醒。"
+    DefensePlant.PLANTERN -> "夜间墓园的迷雾在战斗 30 秒后出现；灯笼草照亮周围 5×5 格，让其中单位重新可见。"
+    DefensePlant.CACTUS -> "仙人掌发射尖刺，可攻击气球等空中僵尸。"
+    DefensePlant.BLOVER -> "三叶草吹走气球等空中僵尸，并可驱散迷雾；本次只处理场上空中目标。"
+    DefensePlant.SPLITPEA -> "分裂豆向前发射一颗豌豆；后方出现僵尸时，会向后连射两颗。"
+    DefensePlant.STARFRUIT -> "杨桃从自身位置向左、上、下及右上/右下五个方向发射星星。"
+    DefensePlant.PUMPKIN -> "南瓜头套在已有植物外保护它；只能覆盖种植，不能单独放置。"
+    DefensePlant.MAGNET -> "磁力菇白天沉睡，需用咖啡豆唤醒；之后每 3 秒吸走本行附近最近的一件金属装备，也能吸掉已架设的梯子。可吸铁桶、铁门、橄榄球头盔、矿工镐、小丑盒和跳跳杆；路障不是金属，不会被吸走。"
+    DefensePlant.CABBAGE -> "卷心菜投手白天沉睡；唤醒后抛投卷心菜，攻击越过坚果墙后的僵尸。"
+    DefensePlant.FLOWERPOT -> "屋顶上的每株植物都需要花盆承载；先铺盆，再在同一格种植物。花盆不会替植物承受啃咬。"
+    DefensePlant.KERNEL -> "玉米投手白天沉睡；唤醒后投掷玉米，约 25% 概率改抛黄油，造成更高伤害并定身 5 秒。"
+    DefensePlant.COFFEE -> "咖啡豆唤醒一株沉睡蘑菇；点选咖啡豆后再点蘑菇所在格，不额外占格。"
+    DefensePlant.GARLIC -> "大蒜被啃食后会改变僵尸的行进路线。"
+    DefensePlant.UMBRELLA -> "叶子保护伞保护周围 3×3 格的植物，挡住蹦极僵尸抓取和投篮僵尸的篮球。"
+    DefensePlant.MARIGOLD -> "金盏花周期产出金币；本模式以答题晶体代替金币。"
+    DefensePlant.MELON -> "西瓜投手抛出西瓜，对命中点附近同一行的 3×1 范围造成溅射。"
+    DefensePlant.GATLING -> "机枪豌豆每轮连续发射四颗豌豆。"
+    DefensePlant.TWINSUN -> "双子向日葵每个生产周期产出两份阳光；本模式对应两颗答题晶体。"
+    DefensePlant.GLOOM -> "忧郁菇白天沉睡；唤醒后向自身及上下相邻行喷射近距离烟雾。"
+    DefensePlant.CATTAIL -> "香蒲必须种在荷叶上；每轮发射两枚追踪尖刺，优先攻击空中僵尸。"
+    DefensePlant.WINTERMELON -> "冰西瓜投手白天沉睡；唤醒后抛出冰西瓜，攻击同一行 3×1 范围并减速命中者。"
+    DefensePlant.GOLDMAGNET -> "金盏花会产出星币；有金磁力菇时星币自动收集并换成阳光，不弹出答题题目。"
+    DefensePlant.SPIKEROCK -> "地刺王比地刺耐久和伤害更高；撞上冰车时摧毁车辆并保留下来。"
+    DefensePlant.COB -> "两台同一行相邻的玉米投手可合成玉米加农炮；装填 34.75 秒后点选炮台和落点，造成 3×3 爆炸。"
+    DefensePlant.IMITATER -> "选中模仿者后再选一张植物卡，模仿者会复制该卡并播放约 0.8 秒的面具变身动画。"
 }
 
 private fun DefensePlant.useText() = when (this) {
-    DefensePlant.LILYPAD, DefensePlant.TANGLE, DefensePlant.SEASHROOM -> "只能部署在中间水域。普通模块要先在同格铺浮板。"
-    DefensePlant.PUMPKIN -> "先在陆地或已有浮板的水域放置目标，再选护盾外壳并点同一格。"
-    DefensePlant.IMITATER -> "先部署要复制的模块，再选拟态模块；它复制最近部署对象的费用与能力。"
-    DefensePlant.GRAVE, DefensePlant.PLANTERN, DefensePlant.FLOWERPOT, DefensePlant.COFFEE -> "该能力需要特定场景条件；详情见本关限制。"
-    else -> "选中卡片后点击空格部署；星能不足、冷却中或地形不符时会提示原因。"
+    DefensePlant.LILYPAD, DefensePlant.TANGLE, DefensePlant.SEASHROOM -> "只能部署在中间水域。普通植物要先在同格种荷叶。"
+    DefensePlant.CATTAIL -> "香蒲只能种在中央水域的荷叶上。"
+    DefensePlant.PUMPKIN -> "先在陆地或荷叶上种一株植物，再选南瓜头并点同一格。"
+    DefensePlant.COFFEE -> "先种任一沉睡蘑菇，再选咖啡豆并点蘑菇所在格。"
+    DefensePlant.COB -> "先在同一行相邻种两株玉米投手，再选玉米加农炮卡并点其中一株升级。"
+    DefensePlant.IMITATER -> "先选模仿者，再点卡组中想复制的植物卡，最后点空格部署；费用和冷却按复制对象计算。"
+    DefensePlant.GRAVE -> "只在夜间墓园点击墓碑部署；没有墓碑的格子无法放置。"
+    DefensePlant.PLANTERN -> "灯笼草在夜间墓园照亮周围 5×5 格；三叶草可短暂清除全场迷雾。"
+    DefensePlant.FLOWERPOT -> "只在屋顶战场使用；先把花盆放在空格，再将其他植物种在盆上。"
+    DefensePlant.UMBRELLA -> "种在屋顶花盆上；覆盖周围 3×3 格，保护植物免受蹦极和篮球攻击。"
+    DefensePlant.GOLDMAGNET -> "与金盏花搭配；自动吸收金盏花产出的星币。"
+    else -> "选中卡片后点击空格部署；阳光不足、冷却中或地形不符时会提示原因。"
 }
 
 private fun DefensePlant.counterText() = when (kind) {
-    PlantKind.GENERATOR, PlantKind.TWIN_GENERATOR -> "不造成攻击伤害；需要搭配射手或阻挡模块保护。"
-    PlantKind.WALL, PlantKind.PUMPKIN -> "只能拖延敌人，无法清除敌人；空中敌人与特殊投射需其他应对。"
+    PlantKind.GENERATOR, PlantKind.TWIN_GENERATOR -> "不造成攻击伤害；需要搭配射手或坚果墙等防御植物保护。"
+    PlantKind.WALL, PlantKind.PUMPKIN -> "只能拖延僵尸，无法将其消灭；空中僵尸与特殊攻击需其他应对。"
     PlantKind.SUPPORT, PlantKind.AQUATIC, PlantKind.TORCH, PlantKind.COFFEE,
     PlantKind.GARLIC, PlantKind.UMBRELLA, PlantKind.UPGRADE -> guideText()
     else -> "注意目标路线、射程和敌方特殊抗性；图鉴条目说明本关生效限制。"
@@ -258,47 +270,50 @@ private fun ZombieKind.roleLabel() = when (behavior) {
     ZombieBehavior.SLED -> "水域滑行"
     ZombieBehavior.EXPLODE -> "近程爆炸"
     ZombieBehavior.AIRBORNE -> "空中单位"
+    ZombieBehavior.BUNGEE -> "空中抓取"
     ZombieBehavior.DIGGER -> "地下绕行"
-    ZombieBehavior.LADDER -> "架梯越障（原型）"
-    ZombieBehavior.CATAPULT -> "远程投射（原型）"
+    ZombieBehavior.LADDER -> "架梯越障"
+    ZombieBehavior.CATAPULT -> "远程投射"
+    ZombieBehavior.YETI -> "限时撤离"
+    ZombieBehavior.BOSS -> "首领攻击"
 }
 
 private fun ZombieKind.guideText() = when (this) {
-    ZombieKind.DRIFTER -> "普通敌人，沿所在轨道向核心推进并啃食阻挡物。"
-    ZombieKind.SIGNAL -> "移动略快的基础敌人。"
-    ZombieKind.SHELL -> "带少量护甲，护甲先承受伤害。"
-    ZombieKind.VAULT -> "遇到首个阻挡物时跳过它。"
-    ZombieKind.HEAVY -> "护甲较厚、速度偏慢，能承受持续火力。"
-    ZombieKind.DASHER -> "高速沿轨道推进。"
-    ZombieKind.NEWSPAPER -> "护甲被打光后进入愤怒状态并加速。"
-    ZombieKind.SCREEN -> "经典版夜间关首次出现（2-3）；本白天草地/水路地图不出场。屏障可抵挡普通直线脉冲。"
-    ZombieKind.FOOTBALL -> "高护甲并快速推进。"
-    ZombieKind.DANCER -> "夜间关专属；本地图不出场。周期召唤随行者。"
-    ZombieKind.BACKUP -> "夜间领航者召唤的支援单位；本地图不出场。"
-    ZombieKind.DUCK -> "沿水域推进的基础敌人。"
-    ZombieKind.SNORKEL -> "水域潜行单位，普通直线射击难以命中。"
-    ZombieKind.ZAMBONI -> "重型压路单位，能快速摧毁挡路模块。"
-    ZombieKind.BOBSLED -> "成队高速滑过水域路线。"
-    ZombieKind.DOLPHIN -> "快速跃过阻挡模块。"
-    ZombieKind.JACK -> "浓雾关单位；本地图不出场。接近防线时触发爆炸。"
-    ZombieKind.BALLOON -> "浓雾关单位；本地图不出场。空中单位，免疫多数地面直线攻击。"
-    ZombieKind.DIGGER -> "浓雾关单位；本地图不出场。进入地下绕过防线，再从另一侧回到战场。"
-    ZombieKind.POGO -> "浓雾关单位；本地图不出场。遇到阻挡时连续跳跃越障。"
-    ZombieKind.YETI -> "浓雾关单位；本地图不出场。高生命值的高速重型敌人。"
-    ZombieKind.BUNGEE -> "屋顶关单位；本地图不出场。空投单位原型，当前简化版按空中目标处理。"
-    ZombieKind.LADDER -> "屋顶关单位；本地图不出场。完整搭梯/梯子可攀爬规则尚未实现。"
-    ZombieKind.CATAPULT -> "屋顶关单位；本地图不出场。当前版本暂未实现完整投石行为。"
-    ZombieKind.GIANT -> "屋顶关单位；本地图不出场。生命较高并能重击阻挡物。"
-    ZombieKind.IMP -> "屋顶关单位；本地图不出场。生命低但移动很快。"
-    ZombieKind.BOSS -> "屋顶最终关单位；本地图不出场。"
+    ZombieKind.DRIFTER -> "普通僵尸沿所在行前进，遇到植物会停下啃食。"
+    ZombieKind.SIGNAL -> "旗帜僵尸标记僵尸进攻波次；本模式按普通僵尸速度和耐久处理。"
+    ZombieKind.SHELL -> "路障僵尸的路障提供额外耐久，先于本体承受伤害。路障不是金属，磁力菇无法吸走；被击碎后只剩普通僵尸。"
+    ZombieKind.VAULT -> "撑杆僵尸会跳过遇到的第一个植物，落地后失去撑杆并以普通速度前进。"
+    ZombieKind.HEAVY -> "铁桶僵尸的铁桶提供大量额外耐久；铁桶可被打掉，也可被磁力菇吸走。"
+    ZombieKind.DASHER -> "高速僵尸是本项目原创单位，没有经典版对应角色；它以较高速度沿行推进。"
+    ZombieKind.NEWSPAPER -> "读报僵尸先由报纸吸收伤害；报纸被打掉后会停顿片刻，再进入愤怒状态并加速。报纸不是金属。"
+    ZombieKind.SCREEN -> "铁门僵尸的金属铁门先承受普通豌豆伤害；大喷菇、投手、地刺和爆炸可绕过铁门直接伤本体，磁力菇能吸走铁门。夜间墓园会出现它。"
+    ZombieKind.FOOTBALL -> "橄榄球僵尸移动很快，头盔提供额外耐久；头盔可被打掉或被磁力菇吸走。"
+    ZombieKind.DANCER -> "舞王僵尸会跳舞并定期召唤同一行的伴舞；夜间墓园会出现它。"
+    ZombieKind.BACKUP -> "伴舞僵尸跟随舞王僵尸出现；本模式沿普通路线推进。"
+    ZombieKind.DUCK -> "鸭子救生圈僵尸只能在水面行进，是水路的基础僵尸。"
+    ZombieKind.SNORKEL -> "潜水僵尸在水中潜行，普通直线豌豆无法命中；投手、范围攻击等仍可攻击它。"
+    ZombieKind.ZAMBONI -> "冰车僵尸以高耐久快速碾过植物；普通地刺会与它同归于尽，地刺王能摧毁它并保留下来。"
+    ZombieKind.BOBSLED -> "雪橇僵尸小队沿冰车留下的冰道高速滑行；本模式将小队合并为一个高耐久单位，只会在冰道生成。"
+    ZombieKind.DOLPHIN -> "海豚骑士僵尸会跃过第一个植物；失去海豚后速度降至普通僵尸水平。"
+    ZombieKind.JACK -> "小丑僵尸靠近植物时会引爆手中的小丑盒，对附近植物造成爆炸伤害；磁力菇吸走盒子后，它不再引爆。"
+    ZombieKind.BALLOON -> "气球僵尸从空中越过地面防线；仙人掌、香蒲、三叶草和范围攻击可应对它。"
+    ZombieKind.DIGGER -> "矿工僵尸钻到地下绕过前排，再从另一侧现身；磁力菇或打掉矿工镐都会使它现身并折返。"
+    ZombieKind.POGO -> "跳跳僵尸会连续借跳跳杆越过普通植物；高坚果挡住它，磁力菇吸走跳杆后它失去跳跃并减速。"
+    ZombieKind.YETI -> "雪人僵尸生命值高、速度较快；出现一段时间后会尝试向右撤离。"
+    ZombieKind.BUNGEE -> "蹦极僵尸从空中垂下并抓走一株植物，然后飞回；叶子保护伞覆盖时会挡住它。"
+    ZombieKind.LADDER -> "扶梯僵尸把梯子架在遇到的植物上并越过；后续僵尸可沿梯子通过，磁力菇能移走已架好的梯子。"
+    ZombieKind.CATAPULT -> "投篮僵尸周期性向前方植物投篮球；叶子保护伞覆盖的植物不会受伤。"
+    ZombieKind.GIANT -> "巨人僵尸生命值很高，会挥棒一击摧毁挡路植物；生命降至一半时把小鬼僵尸投进战场。"
+    ZombieKind.IMP -> "小鬼僵尸体型小、生命较低但移动很快，常由巨人僵尸召唤。"
+    ZombieKind.BOSS -> "僵王博士是屋顶战场的最终首领，会向植物投射攻击；生命降至一半时投出两只小鬼僵尸。"
 }
 
 private fun ZombieKind.counterText() = when (behavior) {
-    ZombieBehavior.AIRBORNE -> "使用尖晶拦截器、全域追踪器或风暴驱散器；普通脉冲通常无法命中。"
-    ZombieBehavior.DIVE -> "用抛物线投手、范围攻击或水域模块；本关潜行规则为简化实现。"
-    ZombieBehavior.SHIELD -> "使用穿透、抛物线或范围攻击绕过正面屏障。"
-    ZombieBehavior.VAULT, ZombieBehavior.POGO -> "利用地刺、范围攻击或跳跃后方布防；单格护墙会被越过。"
-    ZombieBehavior.CRUSH, ZombieBehavior.GIANT, ZombieBehavior.ARMOR -> "用穿透、减速、爆发和地刺组合处理厚护甲/高生命。"
+    ZombieBehavior.AIRBORNE -> "使用仙人掌、香蒲、三叶草或范围攻击；普通豌豆通常无法命中。"
+    ZombieBehavior.DIVE -> "使用投手、范围攻击或水生植物；潜水僵尸在水下时普通豌豆无法命中。"
+    ZombieBehavior.SHIELD -> "使用大喷菇、投手、地刺或爆炸绕过铁门；磁力菇可吸走铁门。"
+    ZombieBehavior.VAULT, ZombieBehavior.POGO -> "用地刺或范围攻击布防；磁力菇可吸走跳跳僵尸的跳跳杆。"
+    ZombieBehavior.CRUSH, ZombieBehavior.GIANT, ZombieBehavior.BOSS, ZombieBehavior.ARMOR -> "用穿透、减速、爆发和地刺组合处理厚护甲/高生命。"
     ZombieBehavior.SUMMON -> "尽快集中火力击败召唤者，减少随行单位累积。"
     else -> "观察它所在路线，使用持续输出并为高生命目标准备减速或爆发。"
 }

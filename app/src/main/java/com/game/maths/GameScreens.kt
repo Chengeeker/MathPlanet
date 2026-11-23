@@ -333,13 +333,27 @@ fun PlayScreen(
                     Modifier.weight(1f).fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    QuestionPanel(
-                        p, round.streak, Modifier.weight(.9f).fillMaxHeight(),
-                        compact = true, minimal = false, innerScroll = true,
-                        showSteps = showSteps, onShowSteps = toggleSteps,
-                        explanationWait = waitSeconds, earlyStepTap = earlyStepTap,
-                        round = round, onSkip = onSkip, onNext = onNext, onAdjust = onAdjust
-                    )
+                    // The child must not scroll just to find Next. The
+                    // content is scrollable while the primary action is
+                    // pinned below it on every landscape tablet height.
+                    Column(Modifier.weight(.9f).fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        QuestionPanel(
+                            p, round.streak, Modifier.fillMaxWidth().weight(1f),
+                            compact = true, minimal = false, innerScroll = true,
+                            showNextAction = false,
+                            showSteps = showSteps, onShowSteps = toggleSteps,
+                            explanationWait = waitSeconds, earlyStepTap = earlyStepTap,
+                            round = round, onSkip = onSkip, onNext = onNext, onAdjust = onAdjust
+                        )
+                        if (LandscapeActionPolicy.pinClassicNext(wide,round.resolved)) {
+                            KidMainButton(
+                                if (round.questionNumber >= round.total)
+                                    "🏆 查看闯关成绩" else "➡️ 下一道题",
+                                onNext, Orange, height = 55.dp
+                            )
+                        }
+                    }
                     // The answer area is a full-height illustrated card, not a top-aligned
                     // 2x2 grid floating over a giant blank tablet column.
                     BoxWithConstraints(Modifier.weight(1.1f).fillMaxHeight()) {
@@ -430,6 +444,7 @@ private fun QuestionPanel(
     compact: Boolean,
     minimal: Boolean = false,
     innerScroll: Boolean = false,
+    showNextAction: Boolean = true,
     showSteps: Boolean,
     onShowSteps: () -> Unit,
     explanationWait: Long, earlyStepTap: Boolean,
@@ -494,10 +509,12 @@ private fun QuestionPanel(
         Spacer(Modifier.height(if (compact) 8.dp else 13.dp))
         // Keep this action directly beneath the explanation toggle, in BOTH answer modes.
         if (round.resolved) {
-            KidMainButton(
-                if (round.questionNumber >= round.total) "🏆 查看闯关成绩" else "➡️ 下一道题",
-                onNext, Orange, height = if (compact) 47.dp else 55.dp
-            )
+            if (showNextAction) {
+                KidMainButton(
+                    if (round.questionNumber >= round.total) "🏆 查看闯关成绩" else "➡️ 下一道题",
+                    onNext, Orange, height = if (compact) 47.dp else 55.dp
+                )
+            }
         } else {
             SmallPill("⏭ 不会做？跳过本题", onSkip)
         }

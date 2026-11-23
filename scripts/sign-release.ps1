@@ -20,14 +20,15 @@ $bc = Get-ChildItem (Join-Path $env:USERPROFILE '.gradle\caches\modules-2\files-
 if ($type -ieq 'BKS' -and $null -eq $bc) { throw 'Missing Bouncy Castle provider JAR (bcprov-jdk18on).' }
 $sdk = 'C:\Users\Administrator\AppData\Local\Android\Sdk'
 $buildTools = Get-ChildItem (Join-Path $sdk 'build-tools') -Directory |
-    Where-Object { Test-Path (Join-Path $_.FullName 'apksigner.bat') } |
+    Where-Object { Test-Path (Join-Path $_.FullName 'lib\apksigner.jar') } |
     Sort-Object { [version]($_.Name -replace '[^\d\.]','') } -Descending | Select-Object -First 1
 if ($null -eq $buildTools) { throw 'Android build-tools not installed.' }
-$apksigner = Join-Path $buildTools.FullName 'apksigner.bat'
+$apksigner = Join-Path $buildTools.FullName 'lib\apksigner.jar'
+$java = 'D:\Java\bin\java.exe'
 $zipalign = Join-Path $buildTools.FullName 'zipalign.exe'
 $aapt2 = Join-Path $buildTools.FullName 'aapt2.exe'
 $keytool = 'D:\Java\bin\keytool.exe'
-if (!(Test-Path $keytool)) { throw 'JDK keytool.exe was not found.' }
+if (!(Test-Path $java) -or !(Test-Path $keytool)) { throw 'JDK tools were not found.' }
 if (!$SkipGradle) {
     Push-Location $root
     try {
@@ -79,10 +80,11 @@ try {
     $previousPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        & $apksigner sign --ks $temp --ks-type PKCS12 --ks-key-alias $props['keyAlias'] --ks-pass "env:$envNameStore" --key-pass "env:$envNameKey" --out $target $aligned 2>&1 | Out-Null
+        # Invoke the JAR directly; the batch launcher can stall in PowerShell automation.
+        & $java -jar $apksigner sign --ks $temp --ks-type PKCS12 --ks-key-alias $props['keyAlias'] --ks-pass "env:$envNameStore" --key-pass "env:$envNameKey" --out $target $aligned 2>&1 | Out-Null
         $signExit = $LASTEXITCODE
         if ($signExit -ne 0) { throw 'APK signing failed.' }
-        $certs = & $apksigner verify --print-certs --verbose $target 2>&1 | Out-String
+        $certs = & $java -jar $apksigner verify --print-certs --verbose $target 2>&1 | Out-String
         $verifyExit = $LASTEXITCODE
         if ($verifyExit -ne 0) { throw 'Signature verification failed.' }
     } finally { $ErrorActionPreference = $previousPreference }

@@ -1,4 +1,6 @@
 .gradle/
+.gradle-native*/
+.gradle-tmp*/
 .kotlin/
 .idea/
 **/build/

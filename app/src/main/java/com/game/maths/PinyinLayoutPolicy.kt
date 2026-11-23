@@ -33,4 +33,10 @@ internal object PinyinLayoutPolicy {
 
     fun useStackedAnswerHeading(pinyinEnabled: Boolean, spacious: Boolean): Boolean =
         pinyinEnabled && !spacious
+
+    /** Audio output labels need full-width buttons in narrow pinyin layouts.
+     * Without pinyin, retain the original side-by-side settings choices.
+     */
+    fun stackVoiceModeOptions(pinyinEnabled: Boolean, availableWidthDp: Float): Boolean =
+        pinyinEnabled && availableWidthDp < 440f
 }

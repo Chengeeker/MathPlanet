@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -56,7 +57,8 @@ internal fun CompactShopScreen(
             Column(
                 Modifier.widthIn(max = if (landscape) 1100.dp else 720.dp)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                    .then(if (landscape) Modifier.fillMaxHeight()
+                        else Modifier.verticalScroll(rememberScrollState()))
                     .padding(horizontal = if (compact) 10.dp else 14.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(gap)
             ) {
@@ -103,11 +105,15 @@ internal fun CompactShopScreen(
                         fontSize = 14.sp, color = AdventureInk, fontWeight = FontWeight.Bold)
                 }
                 if (landscape) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    Row(Modifier.fillMaxWidth().weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.Top) {
                         CompactShopQuestion(q, Modifier.weight(.75f))
+                        // Only the banknote summary may scroll. Confirmation
+                        // becomes Next at the exact same pinned location.
                         CompactShopBoard(q, resolved, message, compact, questionIndex == questionCount - 1,
-                            onCheck, onNext, Modifier.weight(1.25f))
+                            onCheck, onNext, Modifier.weight(1.25f).fillMaxHeight(),
+                            pinAction = LandscapeActionPolicy.pinShopAction(landscape))
                     }
                 } else {
                     CompactShopQuestion(q, Modifier.fillMaxWidth())
@@ -151,7 +157,8 @@ private fun CompactShopQuestion(q: SkillQuestion, modifier: Modifier) {
 private fun CompactShopBoard(
     q: SkillQuestion, resolved: Boolean, message: String, compact: Boolean,
     last: Boolean, onCheck: (Boolean, String) -> Unit, onNext: () -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
+    pinAction: Boolean = false
 ) {
     var notes by remember(q) { mutableStateOf<List<Int>>(emptyList()) }
     val sum = notes.sum()
@@ -163,6 +170,12 @@ private fun CompactShopBoard(
             .padding(if (compact) 10.dp else 13.dp),
         verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp)
     ) {
+        Column(
+            Modifier.then(if (pinAction)
+                Modifier.weight(1f).verticalScroll(rememberScrollState())
+                else Modifier),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp)
+        ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             PinyinText("💴 选择纸币", color = AdventureInk, fontWeight = FontWeight.Black,
                 fontSize = 16.sp)
@@ -207,6 +220,7 @@ private fun CompactShopBoard(
             color = AdventureInk, fontSize = 12.sp, maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             Button(onClick = { notes = notes.dropLast(1) },
                 enabled = notes.isNotEmpty() && !resolved,

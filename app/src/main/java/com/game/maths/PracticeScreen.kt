@@ -118,11 +118,21 @@ internal fun PracticeScreen(audio: AudioDirector, onBack: () -> Unit) {
         topic=next;index=0;correct=0;selected=null;revealed=false;hintOpened=false
     }
 
+    val practiceScroll=rememberScrollState()
+    LaunchedEffect(index,questions) {
+        // After Next, always show the new question from its beginning, even
+        // when the previous explanation was scrolled to the bottom.
+        practiceScroll.scrollTo(0)
+    }
     BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
         val wide=maxWidth>=720.dp && maxWidth>maxHeight
         val annotated=LocalPinyinEnabled.current
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(horizontal=if(wide) 28.dp else 14.dp,vertical=12.dp),
+        val pendingNext=LandscapeActionPolicy.pinPracticeNext(
+            wide, index in questions.indices, selected!=null || revealed)
+        Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().verticalScroll(practiceScroll)
+            .padding(horizontal=if(wide) 28.dp else 14.dp,vertical=12.dp)
+            .padding(bottom=if(pendingNext) 112.dp else 0.dp),
             verticalArrangement=Arrangement.spacedBy(12.dp)) {
             if (annotated && !wide) {
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
@@ -314,12 +324,30 @@ internal fun PracticeScreen(audio: AudioDirector, onBack: () -> Unit) {
                             color=PracticeInk,fontWeight=FontWeight.Black,fontSize=19.sp)
                         PinyinText(q.explanation,color=PracticeInk,fontSize=16.sp,lineHeight=24.sp)
                         if(q.hint.isNotEmpty()) PinyinText("小提示：${q.hint}",color=PracticeInk,fontSize=13.sp)
-                        KidMainButton(if(index==questions.lastIndex) "🏆 查看本轮成绩" else "➡️ 下一题",{
-                            reader.stop();index++;selected=null;revealed=false;hintOpened=false;audio.tap()
-                        },PracticeMint)
+                        if(!wide) {
+                            KidMainButton(if(index==questions.lastIndex)
+                                "🏆 查看本轮成绩" else "➡️ 下一题",{
+                                reader.stop();index++;selected=null;revealed=false;hintOpened=false;audio.tap()
+                            },PracticeMint)
+                        }
                     }
                 }
             }
+        }
+        if(pendingNext) {
+            // Wide tablets keep the continuation action in the viewport.
+            // Only the question/explanation content can scroll behind it.
+            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                .background(Color(0xFFF1F9FF).copy(alpha=.97f))
+                .padding(horizontal=28.dp,vertical=8.dp)) {
+                KidMainButton(
+                    if(index==questions.lastIndex) "🏆 查看本轮成绩" else "➡️ 下一题",
+                    {
+                        reader.stop();index++;selected=null;revealed=false;hintOpened=false;audio.tap()
+                    },PracticeMint
+                )
+            }
+        }
         }
     }
 }
